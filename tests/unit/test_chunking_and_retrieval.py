@@ -223,6 +223,127 @@ def test_repository_indexer_builds_both_indexes(tmp_path: Path) -> None:
     lexical.close()
 
 
+def test_repository_rebuild_replaces_modified_file_evidence(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    evidence = repository / "evidence.md"
+    evidence.write_text("# Retry\nlegacy_retry_marker is enforced.", encoding="utf-8")
+    lexical = LexicalIndex()
+    semantic = SemanticIndex(DeterministicFakeEncoder())
+    indexer = RepositoryIndexer(
+        RepositoryIngestor(tmp_path, repository),
+        DocumentChunker(max_chars=1_000),
+        lexical,
+        semantic,
+    )
+    original = indexer.build()
+    assert lexical.search("legacy_retry_marker")
+
+    evidence.write_text("# Retry\ncurrent_retry_marker is enforced.", encoding="utf-8")
+    replaced = indexer.build()
+
+    assert replaced.chunk_ids != original.chunk_ids
+    assert lexical.search("legacy_retry_marker") == []
+    assert all(
+        "legacy_retry_marker" not in result.chunk.text
+        for result in semantic.search("legacy_retry_marker")
+    )
+    assert lexical.search("current_retry_marker")
+    assert any(
+        "current_retry_marker" in result.chunk.text
+        for result in semantic.search("current_retry_marker")
+    )
+    lexical.close()
+
+
+def test_repository_rebuild_removes_deleted_file_from_both_indexes(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    evidence = repository / "obsolete.md"
+    evidence.write_text("obsolete_circuit_breaker_evidence", encoding="utf-8")
+    lexical = LexicalIndex()
+    semantic = SemanticIndex(DeterministicFakeEncoder())
+    indexer = RepositoryIndexer(
+        RepositoryIngestor(tmp_path, repository),
+        DocumentChunker(max_chars=1_000),
+        lexical,
+        semantic,
+    )
+    indexer.build()
+    assert lexical.search("obsolete_circuit_breaker_evidence")
+
+    evidence.unlink()
+    result = indexer.build()
+
+    assert result.chunks_indexed == 0
+    assert lexical.search("obsolete_circuit_breaker_evidence") == []
+    assert semantic.search("obsolete_circuit_breaker_evidence") == []
+    assert lexical.connection.execute("SELECT count(*) FROM chunks").fetchone()[0] == 0
+    assert lexical.connection.execute("SELECT count(*) FROM chunks_fts").fetchone()[0] == 0
+    lexical.close()
+
+
+def test_repeated_unchanged_rebuild_has_no_duplicate_results(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    (repository / "retry.md").write_text("stable_retry_evidence", encoding="utf-8")
+    lexical = LexicalIndex()
+    semantic = SemanticIndex(DeterministicFakeEncoder())
+    indexer = RepositoryIndexer(
+        RepositoryIngestor(tmp_path, repository),
+        DocumentChunker(max_chars=1_000),
+        lexical,
+        semantic,
+    )
+
+    first = indexer.build()
+    second = indexer.build()
+
+    assert second.chunk_ids == first.chunk_ids
+    assert len(lexical.search("stable_retry_evidence")) == 1
+    assert len(semantic.search("stable_retry_evidence")) == 1
+    assert lexical.connection.execute("SELECT count(*) FROM chunks").fetchone()[0] == 1
+    assert lexical.connection.execute("SELECT count(*) FROM chunks_fts").fetchone()[0] == 1
+    lexical.close()
+
+
+def test_failed_semantic_preparation_preserves_previous_snapshot(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    evidence = repository / "retry.md"
+    evidence.write_text("preserved_retry_evidence", encoding="utf-8")
+    lexical = LexicalIndex()
+    semantic = SemanticIndex(DeterministicFakeEncoder())
+    indexer = RepositoryIndexer(
+        RepositoryIngestor(tmp_path, repository),
+        DocumentChunker(max_chars=1_000),
+        lexical,
+        semantic,
+    )
+    indexer.build()
+    evidence.write_text("replacement_retry_evidence", encoding="utf-8")
+
+    class FailingEncoder:
+        dimension = 64
+
+        def encode(self, texts: object) -> list[list[float]]:
+            raise RuntimeError("fixture encoding failure")
+
+    semantic.encoder = FailingEncoder()
+
+    with pytest.raises(RuntimeError, match="fixture encoding failure"):
+        indexer.build()
+
+    semantic.encoder = DeterministicFakeEncoder()
+    assert lexical.search("preserved_retry_evidence")
+    assert lexical.search("replacement_retry_evidence") == []
+    assert any(
+        "preserved_retry_evidence" in result.chunk.text
+        for result in semantic.search("preserved_retry_evidence")
+    )
+    lexical.close()
+
+
 def test_gold_evidence_recall_at_5_fixture() -> None:
     case_root = Path(__file__).parents[1] / "fixtures" / "gold_retrieval"
     fixture_root = case_root / "repository"

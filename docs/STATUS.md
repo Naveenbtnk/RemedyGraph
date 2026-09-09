@@ -30,6 +30,8 @@
 - Heading-aware document chunking and Python AST symbol-aware chunking with exact source locations.
 - SQLite FTS5/BM25 lexical indexing, local embedding interface, deterministic fake encoder,
   optional local-files-only sentence-transformer adapter, and repository index build service.
+- Full repository rebuilds transactionally replace SQLite chunk/FTS rows and atomically swap a
+  precomputed semantic snapshot, so modified or deleted evidence cannot survive reindexing.
 - Hybrid candidate merge, chunk-ID deduplication, deterministic reranking, top-k selection, and
   structured retrieval logs with redacted queries, ranks, scores, IDs, and timing.
 - Read-only `search_code`, Python `get_symbol`, JSON/YAML/TOML `inspect_config`, `find_tests`, and
@@ -59,7 +61,7 @@
 
 ## Verification
 
-- `python -m pytest` — 37 passed.
+- `python -m pytest` — 41 passed.
 - `ruff check .` and `ruff format --check .` — passed.
 - `mypy backend` — passed.
 - `npm run lint --prefix frontend` — passed.

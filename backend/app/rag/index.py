@@ -55,34 +55,45 @@ class LexicalIndex:
 
     def index(self, chunks: Sequence[DocumentChunk]) -> None:
         with self.connection:
-            for chunk in chunks:
-                self.connection.execute("DELETE FROM chunks_fts WHERE chunk_id = ?", (chunk.id,))
-                self.connection.execute(
-                    """
-                    INSERT OR REPLACE INTO chunks (
-                        id, document_id, source_path, text, line_start, line_end,
-                        document_type, language, symbol, content_hash, index_version
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        chunk.id,
-                        chunk.document_id,
-                        chunk.source_path,
-                        chunk.text,
-                        chunk.line_start,
-                        chunk.line_end,
-                        chunk.document_type.value,
-                        chunk.language,
-                        chunk.symbol,
-                        chunk.content_hash,
-                        chunk.index_version,
-                    ),
-                )
-                self.connection.execute(
-                    """INSERT INTO chunks_fts(chunk_id, text, source_path, symbol)
-                    VALUES (?, ?, ?, ?)""",
-                    (chunk.id, chunk.text, chunk.source_path, chunk.symbol or ""),
-                )
+            self._index_chunks(chunks)
+
+    def replace(self, chunks: Sequence[DocumentChunk]) -> None:
+        """Transactionally replace all lexical rows with one repository snapshot."""
+
+        with self.connection:
+            self.connection.execute("DELETE FROM chunks_fts")
+            self.connection.execute("DELETE FROM chunks")
+            self._index_chunks(chunks)
+
+    def _index_chunks(self, chunks: Sequence[DocumentChunk]) -> None:
+        for chunk in chunks:
+            self.connection.execute("DELETE FROM chunks_fts WHERE chunk_id = ?", (chunk.id,))
+            self.connection.execute(
+                """
+                INSERT OR REPLACE INTO chunks (
+                    id, document_id, source_path, text, line_start, line_end,
+                    document_type, language, symbol, content_hash, index_version
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    chunk.id,
+                    chunk.document_id,
+                    chunk.source_path,
+                    chunk.text,
+                    chunk.line_start,
+                    chunk.line_end,
+                    chunk.document_type.value,
+                    chunk.language,
+                    chunk.symbol,
+                    chunk.content_hash,
+                    chunk.index_version,
+                ),
+            )
+            self.connection.execute(
+                """INSERT INTO chunks_fts(chunk_id, text, source_path, symbol)
+                VALUES (?, ?, ?, ?)""",
+                (chunk.id, chunk.text, chunk.source_path, chunk.symbol or ""),
+            )
 
     def search(self, query: str, *, limit: int = 20) -> list[SearchResult]:
         if limit <= 0:

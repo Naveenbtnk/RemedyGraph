@@ -7,6 +7,7 @@ import importlib
 import math
 import re
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Protocol, cast
 
 from backend.app.rag.contracts import DocumentChunk, RetrievalSource, SearchResult
@@ -94,6 +95,14 @@ class SentenceTransformerEncoder:
         return [[float(value) for value in row] for row in cast(Sequence[Sequence[float]], encoded)]
 
 
+@dataclass(frozen=True)
+class SemanticSnapshot:
+    """A fully encoded immutable-by-convention snapshot ready for an atomic reference swap."""
+
+    chunks: dict[str, DocumentChunk]
+    vectors: dict[str, list[float]]
+
+
 class SemanticIndex:
     """Small in-process vector index appropriate for the local MVP."""
 
@@ -103,14 +112,35 @@ class SemanticIndex:
         self._vectors: dict[str, list[float]] = {}
 
     def index(self, chunks: Sequence[DocumentChunk]) -> None:
+        snapshot = self.prepare_snapshot(chunks)
+        self._chunks.update(snapshot.chunks)
+        self._vectors.update(snapshot.vectors)
+
+    def replace(self, chunks: Sequence[DocumentChunk]) -> None:
+        """Replace the complete semantic corpus after all encoding and validation succeeds."""
+
+        self.install_snapshot(self.prepare_snapshot(chunks))
+
+    def prepare_snapshot(self, chunks: Sequence[DocumentChunk]) -> SemanticSnapshot:
+        """Encode and validate a complete corpus without mutating the searchable snapshot."""
+
         vectors = self.encoder.encode([chunk.text for chunk in chunks])
         if len(vectors) != len(chunks):
             raise ValueError("encoder returned the wrong number of vectors")
+        snapshot_chunks: dict[str, DocumentChunk] = {}
+        snapshot_vectors: dict[str, list[float]] = {}
         for chunk, vector in zip(chunks, vectors, strict=True):
             if len(vector) != self.encoder.dimension:
                 raise ValueError("encoder returned a vector with the wrong dimension")
-            self._chunks[chunk.id] = chunk
-            self._vectors[chunk.id] = vector
+            snapshot_chunks[chunk.id] = chunk
+            snapshot_vectors[chunk.id] = vector
+        return SemanticSnapshot(chunks=snapshot_chunks, vectors=snapshot_vectors)
+
+    def install_snapshot(self, snapshot: SemanticSnapshot) -> None:
+        """Atomically expose a prepared snapshot to subsequent in-process searches."""
+
+        self._chunks = snapshot.chunks
+        self._vectors = snapshot.vectors
 
     def search(self, query: str, *, limit: int = 20) -> list[SearchResult]:
         if limit <= 0 or not query.strip() or not self._chunks:

@@ -27,8 +27,9 @@ class RepositoryIndexer:
         chunks = [
             chunk for document in ingestion.documents for chunk in self.chunker.chunk(document)
         ]
-        self.lexical.index(chunks)
-        self.semantic.index(chunks)
+        semantic_snapshot = self.semantic.prepare_snapshot(chunks)
+        self.lexical.replace(chunks)
+        self.semantic.install_snapshot(semantic_snapshot)
         return RepositoryIndexResult(
             documents_indexed=len(ingestion.documents),
             chunks_indexed=len(chunks),
