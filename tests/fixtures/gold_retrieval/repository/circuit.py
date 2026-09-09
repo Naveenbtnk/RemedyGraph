@@ -1,0 +1,2 @@
+class CircuitBreaker:
+    pass

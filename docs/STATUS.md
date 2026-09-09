@@ -1,8 +1,8 @@
 # RemedyGraph Implementation Status
 
 **Last updated:** 2026-09-09
-**Current phase:** Phase 1 — Day 1 vertical slice
-**Overall status:** Day 1 scaffold complete; ready for Day 2 indexing work
+**Current phase:** Phase 2 — Day 2 indexing and investigation
+**Overall status:** Day 2 complete; ready for the Day 3 verification workflow
 
 ## Completed
 
@@ -20,27 +20,46 @@
 - Provider interface and deterministic, network-free mock action extractor.
 - React/Vite TypeScript frontend dashboard shell with a production build and smoke test.
 - Backend API/unit tests, frontend lint/test scripts, and pinned frontend dependency lockfile.
+- Typed normalized-document, chunk, search-result, evidence-candidate, index-result, retrieval-log,
+  and deterministic investigation-tool contracts.
+- Canonical workspace/repository containment and a deterministic safe walker with symlink, secret,
+  binary, dependency/build, file-size, total-size, and file-count restrictions.
+- Native Markdown/UTF-8 text ingestion with raw SHA-256 provenance and pre-index secret redaction.
+- Optional local-only Microsoft MarkItDown PDF/DOCX/PPTX adapter with plugins, remote URLs, cloud
+  services, and LLM OCR disabled; ADR-013 records the boundary.
+- Heading-aware document chunking and Python AST symbol-aware chunking with exact source locations.
+- SQLite FTS5/BM25 lexical indexing, local embedding interface, deterministic fake encoder,
+  optional local-files-only sentence-transformer adapter, and repository index build service.
+- Hybrid candidate merge, chunk-ID deduplication, deterministic reranking, top-k selection, and
+  structured retrieval logs with redacted queries, ranks, scores, IDs, and timing.
+- Read-only `search_code`, Python `get_symbol`, JSON/YAML/TOML `inspect_config`, `find_tests`, and
+  bounded fixed-argument `find_git_changes` tools.
+- Safety, conversion, redaction, source-location, retrieval, AST/config/Git tool, and gold-evidence
+  Recall@5 automated coverage.
 
 ## Files Changed
 
 - `pyproject.toml`, `.env.example`
-- `backend/` application, domain models, schemas, services, and mock provider
-- `frontend/` Vite/React/TypeScript application and `package-lock.json`
-- `tests/` API and unit coverage for health, project/incident schemas, stable models, and mock extraction
-- `docs/STATUS.md`
+- `backend/app/settings.py`
+- `backend/app/rag/**`, `backend/app/tools/**`
+- `tests/unit/test_repository_ingestion.py`
+- `tests/unit/test_chunking_and_retrieval.py`
+- `tests/unit/test_investigation_tools.py`
+- `tests/fixtures/gold_retrieval/**`
+- `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/TESTING.md`, `docs/STATUS.md`
 
 ## Not Started
 
-- Repository indexing and retrieval.
-- Deterministic investigation tools.
 - LangGraph audit workflow.
+- Deterministic checks and verdict aggregation.
+- SQLite audit/workflow persistence and evidence graph assembly.
 - Guard generation/execution.
 - RemedyBench cases and evaluation.
 - CI and deployment/demo artifacts.
 
 ## Verification
 
-- `python -m pytest` — 7 passed.
+- `python -m pytest` — 37 passed.
 - `ruff check .` and `ruff format --check .` — passed.
 - `mypy backend` — passed.
 - `npm run lint --prefix frontend` — passed.
@@ -50,14 +69,27 @@
 
 ## Limitations
 
-- Day 1 uses an in-memory store; SQLite persistence and audit runs are deferred.
+- Day 1 application records still use an in-memory store; SQLite audit persistence is Day 3 scope.
 - The mock provider supports bounded action extraction only and makes no network calls.
 - The frontend is a static dashboard shell; it is not connected to the API yet.
-- Repository indexing, retrieval, invariant compilation, deterministic checks, verdicts, guards, and evaluation remain unimplemented.
+- MarkItDown is optional; scanned/image-only documents may be incomplete because plugins and
+  LLM-powered OCR are disabled. Conversion failures are reported and indexing continues.
+- Sentence-transformer embeddings require an explicitly installed optional dependency and a model
+  already available locally. The deterministic fake encoder is used in default tests.
+- The Day 2 semantic vector index is process-local; persisted audit/index lifecycle management is
+  deferred to Day 3.
+- Invariant compilation, deterministic checks, verdicts, guards, and evaluation remain unimplemented.
 
 ## Next Task
 
-Implement Day 2 safe repository indexing and hybrid retrieval, including workspace/file restrictions, metadata-rich chunks, and focused unit tests.
+Implement the Day 3 bounded LangGraph audit and deterministic verification workflow: compile typed
+invariants; persist projects, incidents, index metadata, audit runs, evidence, checks, verdicts, and
+the evidence graph in SQLite; enforce six model calls per incident and three investigation rounds
+per invariant; add allowlisted static/config/test checks; require evidence citations or explicit
+missing-proof reasons; prevent failed deterministic checks or Git/document-only support from
+producing `VERIFIED`; produce all four verdict classes; expose the run/evidence API surface; and add
+unit/integration/API tests for contradictory evidence, persistence/reload, graph references, and
+bounded failure paths. Do not implement Day 4 guard writing/execution or dashboard integration.
 
 ## Current Agent Allocation
 
@@ -67,7 +99,8 @@ Implement Day 2 safe repository indexing and hybrid retrieval, including workspa
 
 ## Blockers
 
-None for local scaffolding. Runtime model credentials are not required until the mock-provider vertical slice works.
+None. Runtime model credentials, MarkItDown, and sentence-transformer model downloads are not
+required by the default test suite.
 
 ## Handoff Format
 

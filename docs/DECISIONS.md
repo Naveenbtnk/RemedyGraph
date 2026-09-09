@@ -86,6 +86,24 @@ Accepted decisions are authoritative until superseded by a later entry. Add new 
 **Reason:** Physical separation prevents working-copy overwrites; ownership prevents merge-time duplication.
 **Consequence:** Shared-file changes go through the integration owner.
 
+## ADR-013: Constrained MarkItDown Document Adapter
+
+**Status:** Accepted
+**Decision:** Keep Markdown and UTF-8 plain text as the native ingestion path. Offer Microsoft
+MarkItDown only through a `documents` optional dependency group for local PDF, DOCX, and PPTX
+conversion. Call the local-file conversion API after workspace/repository containment checks, keep
+plugins disabled, and provide no remote URL, cloud-service, LLM client, or LLM-powered OCR path.
+ZIP, YouTube, audio, Excel, and other MarkItDown formats are outside the MVP.
+**Reason:** Postmortems and supporting evidence are often office documents, but MarkItDown's broad
+conversion surface and optional integrations exceed the local-first security boundary. A narrow
+adapter expands useful input coverage without making document conversion a network or tool-plugin
+execution path.
+**Consequence:** Default installs and tests do not install MarkItDown. Users who need PDF/DOCX/PPTX
+must install `remedygraph[documents]`. Converted records preserve source filename, MIME type, raw
+SHA-256 hash, converter name/version, and redacted normalized Markdown. Scanned/image-only content
+may be incomplete because LLM-powered OCR is intentionally disabled; conversion failures remain
+explicit ingestion failures rather than silently empty documents.
+
 ## Decision Template
 
 ```markdown

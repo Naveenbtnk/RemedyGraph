@@ -150,6 +150,7 @@ Constraint: no repository write or execution without approval.
 ### Supported Corpus
 
 - Markdown and text documentation.
+- Local PDF, DOCX, and PPTX through the optional constrained MarkItDown adapter.
 - Python source for symbol-aware indexing.
 - YAML, JSON, TOML, and dotenv-like configuration with secret redaction.
 - Test files.
@@ -164,6 +165,19 @@ Constraint: no repository write or execution without approval.
 
 Every chunk stores path, line range, document type, language, symbol, content hash, and index version.
 
+### Ingestion and Conversion Boundary
+
+- Canonicalize `WORKSPACE_ROOT`, the selected repository, and each file before reading.
+- Do not follow symlinks; reject any resolved file outside the selected repository or workspace.
+- Apply configured per-file, total-byte, and file-count limits before ingestion.
+- Ignore Git internals, dependency/build directories, secret files, unsupported formats, and binary
+  content.
+- Decode native Markdown, UTF-8 plain text, source, and configuration files without a model.
+- Invoke MarkItDown only for local PDF, DOCX, and PPTX via `convert_local`, with plugins disabled and
+  without remote, cloud, LLM-client, or OCR configuration. The dependency is optional.
+- Preserve raw-content SHA-256 and converter provenance; redact secret-like content before indexing.
+- Record conversion failures by safe relative source path without aborting the remaining index.
+
 ### Hybrid Retrieval
 
 1. SQLite FTS5/BM25 retrieves lexical candidates.
@@ -171,6 +185,13 @@ Every chunk stores path, line range, document type, language, symbol, content ha
 3. Candidates are merged and deduplicated.
 4. Deterministic reranking boosts exact identifiers, path role, symbols, invariant terms, and tests.
 5. Top eight chunks form the model context.
+
+The semantic interface has a deterministic fake encoder for tests and an optional
+sentence-transformers adapter. The adapter defaults to local-files-only model loading. The Day 2
+vector index is process-local; SQLite FTS5 stores the lexical corpus and full chunk metadata.
+
+Each retrieval records the redacted query, returned chunk IDs, lexical/semantic/final ranks and
+scores, and elapsed time.
 
 Ground-truth benchmark labels must never enter the searchable corpus.
 
@@ -269,6 +290,7 @@ coverage = weighted verdict value / assessed weight * 100
 - Canonicalize paths and enforce workspace containment.
 - Ignore symlinks that escape the workspace.
 - Redact key/token/password-like values before storage or display.
+- Keep optional document conversion local-only and disable MarkItDown plugins and LLM/cloud paths.
 - Treat retrieved repository content as untrusted.
 - Keep prompts structurally separated from retrieved content.
 - Never evaluate arbitrary model-generated shell.
