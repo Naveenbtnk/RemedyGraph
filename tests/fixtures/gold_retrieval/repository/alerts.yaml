@@ -1,0 +1,2 @@
+payments:
+  failure_threshold_percent: 10

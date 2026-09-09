@@ -1,0 +1,5 @@
+{
+  "query": "bound payment retry attempts to three",
+  "gold_evidence_paths": ["payments/retry.py"],
+  "metric": "Recall@5"
+}

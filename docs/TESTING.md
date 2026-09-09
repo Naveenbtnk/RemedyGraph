@@ -18,8 +18,13 @@ Fast, deterministic, network-free tests for:
 - Workspace path containment and symlink escape rejection.
 - File allow/deny rules and size limits.
 - Secret redaction.
+- Native text metadata, constrained MarkItDown invocation, optional dependency absence, and
+  explicit conversion failures.
 - Markdown, Python, test, and configuration chunk metadata.
 - BM25/vector merge, deduplication, and reranking.
+- Retrieval logging with redacted queries, ranks, scores, IDs, and timing.
+- Deterministic fake embeddings and local-files-only sentence-transformer configuration without
+  downloading a model.
 - Python AST symbol and rollback-pattern detection.
 - YAML, JSON, and TOML parsing.
 - Numeric threshold and configuration predicates.
@@ -154,6 +159,8 @@ Do not place target values in the README results table. Publish only outputs fro
 - Reject `..` path traversal and absolute paths outside the workspace.
 - Reject symlink escape.
 - Ignore `.env`, keys, binaries, dependency trees, Git objects, and oversized files.
+- Reject remote/escaped document paths and keep MarkItDown plugins, cloud services, and LLM OCR
+  disabled.
 - Redact common secret patterns before persistence and display.
 - Confirm retrieved prompt-injection text cannot select arbitrary tools/commands.
 - Confirm runner uses an allowlisted command, scrubbed environment, timeout, and output cap.
@@ -189,6 +196,7 @@ Update this section when package scripts are created. Do not retain commands tha
 - Indexer respects file/path restrictions.
 - Gold evidence for sample incident appears in top five retrieval.
 - Tool unit tests pass.
+- Default tests make no network calls and require no document converter or embedding model download.
 
 ### Day 3 Gate
 
