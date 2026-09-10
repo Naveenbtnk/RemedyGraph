@@ -1,8 +1,8 @@
 # RemedyGraph Implementation Status
 
-**Last updated:** 2026-09-09
-**Current phase:** Phase 2 — Day 2 indexing and investigation
-**Overall status:** Day 2 complete; ready for the Day 3 verification workflow
+**Last updated:** 2026-09-10
+**Current phase:** Phase 3 — Day 3 audit and deterministic verification
+**Overall status:** Day 3 complete; ready for Day 4 guard and dashboard integration
 
 ## Completed
 
@@ -38,30 +38,69 @@
   bounded fixed-argument `find_git_changes` tools.
 - Safety, conversion, redaction, source-location, retrieval, AST/config/Git tool, and gold-evidence
   Recall@5 automated coverage.
+- Typed contracts for compiled invariants, workflow state, evidence/citations, deterministic check
+  specifications/results, action verdicts, evidence-graph records, run summaries, repository index
+  metadata, workflow events, and budget usage.
+- Deterministic invariant compiler for numeric/configuration, code/static, test/protection, and
+  runtime/context requirements, preserving original action text and source location while returning
+  explicit unsupported or unavailable requirements instead of invented checks.
+- Bounded LangGraph audit workflow with explicit load-actions, compile, retrieve-candidates,
+  read-only checks, conservative-verdict, evidence-graph, and persistence/completion nodes.
+- A persisted six-attempt budget spans each stable incident's full lifecycle: corrective-action
+  extraction and audit gateways reserve the same counter before provider invocation, failed calls
+  remain charged, and repeated incident submission cannot reset usage.
+- A default three-round-per-invariant investigation budget, deterministic local indexing/retrieval,
+  and safe failure state persistence.
+- Allowlisted numeric configuration/Python constant checks, Python AST call/wiring and enabled
+  configuration checks, bounded supporting-only literal scans, and nontrivial relevant regression
+  structure checks with typed results and located evidence.
+- Declaration-, identifier-, comment-, string-, disabled-config-, constant-assertion-, and unrelated
+  test-shaped false proofs are rejected; the exact unused `CircuitBreaker` plus `assert True` case
+  produces `MISSING`, never `VERIFIED`.
+- Conservative verdict aggregation enforcing deterministic failure precedence, regression proof for
+  `VERIFIED`, explicit missing-proof reasons, and a ban on Git/document-only verification.
+- Versioned SQLite schema 2 (including migration from schema 1) and typed reload for projects,
+  incidents, incident lifecycle budgets, corrective actions, repository index
+  metadata, audit runs, invariants, evidence, checks/results, verdicts, evidence graph nodes/edges,
+  workflow events, and budget counters.
+- Complete transactional audit snapshot replacement removes stale child records and validates
+  project/incident ownership, action/invariant/run provenance, result/evidence/verdict links, and
+  correctly typed same-run graph records and relationships before writing.
+- Bounded provider gateway persists attempted-call usage before provider invocation, including
+  failures; sixth-call/seventh-rejection and third-round/fourth-rejection behavior is tested.
+- `/api/v1/runs` create/read, action-verdict, evidence, and graph endpoints backed by persisted audit
+  state.
+- Day 3 unit, integration, and API coverage for all four verdict classes, contradictory values,
+  unavailable/unsupported requirements, budget enforcement, graph integrity, and persistence reload.
+- FastAPI owns each application SQLite store through its lifespan and closes the connection exactly
+  once on shutdown; closure is idempotent and releases file-backed databases on Windows.
+- Incident model-call reservation takes an immediate SQLite write transaction before reading the
+  counter, so independent connections/workers cannot both consume the final slot; lock exhaustion
+  returns a typed `503 storage_busy` response before provider invocation.
 
 ## Files Changed
 
-- `pyproject.toml`, `.env.example`
-- `backend/app/settings.py`
-- `backend/app/rag/**`, `backend/app/tools/**`
-- `tests/unit/test_repository_ingestion.py`
-- `tests/unit/test_chunking_and_retrieval.py`
-- `tests/unit/test_investigation_tools.py`
-- `tests/fixtures/gold_retrieval/**`
+- `pyproject.toml`
+- `backend/app/audit/**`, `backend/app/storage.py`
+- `backend/app/llm/mock.py`, `backend/app/main.py`, `backend/app/models.py`
+- `backend/app/schemas.py`, `backend/app/services.py`, `backend/app/settings.py`
+- `tests/unit/test_audit_core.py`, `tests/unit/test_audit_budget_gateway.py`
+- `tests/unit/test_incident_budget.py`
+- `tests/integration/test_audit_workflow.py`, `tests/integration/test_audit_persistence_integrity.py`
+- `tests/api/test_api.py`
+- `tests/api/test_app_lifecycle.py`, `tests/conftest.py`
 - `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/TESTING.md`, `docs/STATUS.md`
 
 ## Not Started
 
-- LangGraph audit workflow.
-- Deterministic checks and verdict aggregation.
-- SQLite audit/workflow persistence and evidence graph assembly.
 - Guard generation/execution.
+- Frontend/API dashboard integration.
 - RemedyBench cases and evaluation.
 - CI and deployment/demo artifacts.
 
 ## Verification
 
-- `python -m pytest` — 41 passed.
+- `python -m pytest` — 91 passed.
 - `ruff check .` and `ruff format --check .` — passed.
 - `mypy backend` — passed.
 - `npm run lint --prefix frontend` — passed.
@@ -71,27 +110,30 @@
 
 ## Limitations
 
-- Day 1 application records still use an in-memory store; SQLite audit persistence is Day 3 scope.
-- The mock provider supports bounded action extraction only and makes no network calls.
+- SQLite defaults to an in-memory database for local development/tests; set
+  `REMEDYGRAPH_DATABASE_PATH` to retain audit state across process restarts.
+- The mock provider makes no network calls. Each corrective-action extraction still consumes one
+  persisted incident-level model attempt; deterministic audit compilation and verification consume
+  no additional calls.
 - The frontend is a static dashboard shell; it is not connected to the API yet.
 - MarkItDown is optional; scanned/image-only documents may be incomplete because plugins and
   LLM-powered OCR are disabled. Conversion failures are reported and indexing continues.
 - Sentence-transformer embeddings require an explicitly installed optional dependency and a model
   already available locally. The deterministic fake encoder is used in default tests.
-- The Day 2 semantic vector index is process-local; persisted audit/index lifecycle management is
-  deferred to Day 3.
-- Invariant compilation, deterministic checks, verdicts, guards, and evaluation remain unimplemented.
+- The semantic vector snapshot remains process-local; durable vector-backend lifecycle management
+  is outside the Day 3 bounded-audit scope.
+- Test/protection verification is Python-first structural analysis. It does not execute repository
+  tests; isolated execution of generated guards remains intentionally deferred to Day 4.
+- Guard generation/execution, dashboard integration, and evaluation remain unimplemented.
 
 ## Next Task
 
-Implement the Day 3 bounded LangGraph audit and deterministic verification workflow: compile typed
-invariants; persist projects, incidents, index metadata, audit runs, evidence, checks, verdicts, and
-the evidence graph in SQLite; enforce six model calls per incident and three investigation rounds
-per invariant; add allowlisted static/config/test checks; require evidence citations or explicit
-missing-proof reasons; prevent failed deterministic checks or Git/document-only support from
-producing `VERIFIED`; produce all four verdict classes; expose the run/evidence API surface; and add
-unit/integration/API tests for contradictory evidence, persistence/reload, graph references, and
-bounded failure paths. Do not implement Day 4 guard writing/execution or dashboard integration.
+Implement only the Day 4 guard preview/approval/execution boundary and frontend integration against
+the existing persisted audit APIs. Generate previews without repository mutation; require explicit
+per-guard approval before writing; write only to an isolated generated-guard directory; execute only
+fixed allowlisted commands with scrubbed environment, network restriction where possible, timeout
+and output caps; persist approval/execution evidence; connect run status, budget, verdict, evidence,
+graph, and guard controls in the dashboard; retain the Day 3 deterministic verdict constraints.
 
 ## Current Agent Allocation
 

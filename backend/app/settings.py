@@ -23,7 +23,8 @@ class Settings(BaseSettings):
     workspace_root: Path = Field(default_factory=Path.cwd)
     llm_provider: Literal["mock"] = "mock"
     frontend_origin: str = "http://localhost:5173"
-    max_model_calls: int = Field(default=6, ge=1, le=100)
+    database_path: str = ":memory:"
+    max_model_calls: int = Field(default=6, ge=1, le=6)
     max_investigation_rounds: int = Field(default=3, ge=1, le=20)
     max_file_bytes: int = Field(default=1_000_000, ge=1, le=100_000_000)
     max_index_bytes: int = Field(default=25_000_000, ge=1, le=2_000_000_000)

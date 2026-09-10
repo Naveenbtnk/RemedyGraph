@@ -28,10 +28,21 @@ Fast, deterministic, network-free tests for:
 - Python AST symbol and rollback-pattern detection.
 - YAML, JSON, and TOML parsing.
 - Numeric threshold and configuration predicates.
+- Python AST call/wiring proof that rejects declaration-, identifier-, comment-, and string-only
+  matches; enabled structured configuration is handled separately.
+- Nontrivial regression structure that rejects `assert True`, constant comparisons, and tests that
+  do not exercise relevant imported implementation symbols or calls.
+- Bounded supporting-only literal-pattern scans and rejection of arbitrary command parameters.
 - Verdict aggregation constraints.
 - Assessed protection coverage calculation.
 - Guard syntax/path validation.
 - Provider timeout, malformed JSON, and schema-retry behavior.
+- Incident-lifecycle budget reservation: six extraction attempts allowed, seventh rejected, failed
+  extraction charged, stable-incident resubmission unable to reset usage, and synchronized
+  independent connections permitting exactly one consumer of the final slot.
+- Audit-run provider gateway success/failure accounting against the same incident counter.
+- Competing incident services invoke the provider only after winning the atomic reservation, and
+  SQLite lock exhaustion returns a typed service-unavailable API response.
 
 ### Integration Tests
 
@@ -46,13 +57,19 @@ Tests combining real internal components with a deterministic model stub:
 - Generated guard passes the corresponding good state.
 - Approval is required before guard writing/execution.
 - Run persistence and reload.
-- Graph nodes and edges reference valid records.
+- Complete-snapshot shrink/replacement and rollback after a mid-transaction database failure.
+- Schema-version creation, version-1 migration, reopen, and unsupported-version rejection.
+- Cross-project/run/action/invariant rejection for all persisted audit records.
+- Graph nodes have correct record types and same-run ownership; duplicate, unknown, cross-run, and
+  relationship-mismatched nodes/edges are rejected.
 
 ### API Contract Tests
 
 - Request and response validation for every public endpoint.
 - Stable verdict and run-status enums.
 - Error shape for invalid paths, unsupported files, missing runs, provider failure, and execution timeout.
+- Audit start/status/budget, verdict, evidence, and graph responses; unknown IDs,
+  project/incident mismatch, typed invalid-state failure, and typed budget exhaustion.
 - OpenAPI snapshot after the API stabilizes.
 
 ### Frontend Tests
@@ -202,7 +219,16 @@ Update this section when package scripts are created. Do not retain commands tha
 
 - End-to-end audit produces expected verdict classes.
 - Deterministic failure cannot become verified.
-- Audit and graph persist correctly.
+- Unused declarations plus trivial or unrelated tests cannot become verified.
+- Every model attempt is charged before invocation; the sixth call/third investigation round are
+  allowed and the seventh/fourth are rejected without retry.
+- Corrective-action extraction and audit gateways share the stable incident's six-call budget;
+  failed extraction and repeated incident creation remain charged. Independent SQLite connections
+  cannot both consume the final slot.
+- LangGraph exposes separate load, compile, retrieve, investigate/check, verdict, graph, and
+  persistence/completion nodes.
+- Audit snapshots replace stale children transactionally and reject cross-scope records.
+- Versioned SQLite reopen and evidence-graph record/relationship integrity pass.
 
 ### Day 4 Gate
 

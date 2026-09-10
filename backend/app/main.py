@@ -1,28 +1,68 @@
 """FastAPI application factory and Day 1 HTTP surface."""
 
-from fastapi import APIRouter, FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
+from fastapi import APIRouter, FastAPI, Request, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from backend.app.audit.budget import BudgetExceeded
+from backend.app.audit.workflow import AuditWorkflow
 from backend.app.llm.mock import MockLLMProvider
 from backend.app.schemas import (
+    ActionVerdictsResponse,
+    AuditRunCreate,
+    AuditRunResponse,
+    EvidenceGraphResponse,
+    EvidenceResponse,
     HealthResponse,
     IncidentCreate,
     IncidentResponse,
     ProjectCreate,
     ProjectResponse,
 )
-from backend.app.services import IncidentService, InMemoryStore, ProjectService
+from backend.app.services import AuditService, IncidentService, ProjectService
 from backend.app.settings import Settings, get_settings
+from backend.app.storage import SQLiteStore, StorageBusyError
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     resolved_settings = settings or get_settings()
-    store = InMemoryStore()
+    store = SQLiteStore(resolved_settings.database_path)
     provider = MockLLMProvider()
     project_service = ProjectService(store, resolved_settings.workspace_root)
-    incident_service = IncidentService(store, provider)
+    incident_service = IncidentService(store, provider, resolved_settings.max_model_calls)
+    audit_workflow = AuditWorkflow(store, resolved_settings)
+    audit_service = AuditService(store, audit_workflow)
 
-    app = FastAPI(title=resolved_settings.app_name, version=resolved_settings.app_version)
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        try:
+            yield
+        finally:
+            store.close()
+
+    app = FastAPI(
+        title=resolved_settings.app_name,
+        version=resolved_settings.app_version,
+        lifespan=lifespan,
+    )
+
+    @app.exception_handler(BudgetExceeded)
+    def budget_exceeded(_request: Request, exc: BudgetExceeded) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={"detail": str(exc), "failure_code": exc.failure_code.value},
+        )
+
+    @app.exception_handler(StorageBusyError)
+    def storage_busy(_request: Request, exc: StorageBusyError) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"detail": str(exc), "failure_code": exc.failure_code},
+        )
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[resolved_settings.frontend_origin],
@@ -47,7 +87,30 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def create_incident(request: IncidentCreate) -> IncidentResponse:
         return IncidentResponse.model_validate(incident_service.create(request).model_dump())
 
+    @api.post("/runs", response_model=AuditRunResponse, status_code=201, tags=["audits"])
+    def create_run(request: AuditRunCreate) -> AuditRunResponse:
+        return AuditRunResponse.model_validate(audit_service.start(request).model_dump())
+
+    @api.get("/runs/{run_id}", response_model=AuditRunResponse, tags=["audits"])
+    def get_run(run_id: str) -> AuditRunResponse:
+        return AuditRunResponse.model_validate(audit_service.state(run_id).summary.model_dump())
+
+    @api.get("/runs/{run_id}/actions", response_model=ActionVerdictsResponse, tags=["audits"])
+    def get_run_actions(run_id: str) -> ActionVerdictsResponse:
+        return ActionVerdictsResponse(verdicts=audit_service.state(run_id).verdicts)
+
+    @api.get("/runs/{run_id}/evidence", response_model=EvidenceResponse, tags=["audits"])
+    def get_run_evidence(run_id: str) -> EvidenceResponse:
+        return EvidenceResponse(evidence=audit_service.state(run_id).evidence)
+
+    @api.get("/runs/{run_id}/graph", response_model=EvidenceGraphResponse, tags=["audits"])
+    def get_run_graph(run_id: str) -> EvidenceGraphResponse:
+        state = audit_service.state(run_id)
+        return EvidenceGraphResponse(nodes=state.graph_nodes, edges=state.graph_edges)
+
     app.include_router(api)
+    app.state.store = store
+    app.state.audit_workflow = audit_workflow
     return app
 
 

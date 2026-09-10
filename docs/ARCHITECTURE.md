@@ -25,13 +25,13 @@ FastAPI modular monolith
   |-- Audit workflow (LangGraph)
   |-- Deterministic investigation tools
   |-- Hybrid retrieval
-  |-- Guard preview/execution service
+  |-- Guard preview/execution service (Day 4, not yet implemented)
   |-- Evaluation service
   |
   +--> Local repository (read-only during audit)
   +--> SQLite + local vector index
   +--> Configurable LLM provider
-  +--> Isolated/allowlisted test subprocess
+  +--> Isolated/allowlisted test subprocess (Day 4 boundary)
 ```
 
 ## 3. Component Responsibilities
@@ -53,13 +53,16 @@ FastAPI modular monolith
 ### Audit Service
 
 - Create and persist audit runs.
-- Initialize workflow state and budgets.
+- Initialize workflow state from the persisted incident-level model budget.
 - Coordinate indexing, investigation, verification, and final audit assembly.
 
 ### LangGraph Workflow
 
 - Provides explicit stages, typed state, bounded loops, failure handling, and resumable run metadata.
 - Logical nodes are not separate network services.
+- The implemented Day 3 graph is `compile -> index -> investigate -> verify`. It performs one
+  retrieval round per invariant, then evaluates all of that invariant's allowlisted check specs.
+- Guard generation, repository writes, and subprocess execution are not part of the Day 3 graph.
 
 ### Deterministic Tool Layer
 
@@ -78,40 +81,46 @@ FastAPI modular monolith
 ### LLM Provider Layer
 
 - Exposes one structured-generation interface.
-- Supports an OpenAI-compatible endpoint, Gemini API adapter when available, and deterministic mock provider.
+- Currently provides the deterministic mock; vendor adapters remain planned behind the same interface.
 - Enforces timeouts, retries, call budgets, schema validation, and logging without secret values.
 
 ## 4. Workflow
 
 ```text
 START
- -> parse_input
- -> extract_actions
- -> retrieve_policy_context
+ -> load_incident_actions
  -> compile_invariants
- -> index_repository
- -> investigate_next_invariant
-      -> plan_queries
-      -> hybrid_retrieve
-      -> call_read_only_tools
-      -> execute_selected_allowlisted_check
-      -> repeat while evidence gap exists and round budget remains
- -> verify_invariant
- -> repeat for remaining invariants
- -> generate_guard_specs_for_gaps
- -> build_graph
- -> calculate_assessed_coverage
- -> persist_audit
+ -> retrieve_candidates
+      -> build bounded repository index
+      -> reserve one investigation round per supported invariant
+      -> hybrid retrieve supporting-only candidates
+ -> investigate_checks
+      -> execute every typed allowlisted deterministic check
+ -> assign_verdicts
+      -> apply conservative deterministic precedence and coverage
+ -> build_evidence_graph
+ -> persist_completion
+      -> replace persisted audit snapshot transactionally
  -> END
 ```
 
-Default bounds:
+Incident action extraction occurs before audit creation. Day 4 will add guard preview, approval,
+isolated writing/execution, and dashboard integration after this completed Day 3 boundary.
 
-- Maximum six model calls per incident.
+Implemented Day 3 bounds:
+
+- Maximum six attempted model calls across the stable incident lifecycle. Corrective-action
+  extraction and any audit-run provider gateway share the same persisted incident counter; a
+  failed call is charged, and resubmitting the same incident cannot reset the counter.
 - Maximum three investigation rounds per invariant.
 - Maximum eight final retrieved chunks per invariant.
 - Per-file size and total-index size limits.
-- Test execution timeout and output cap.
+- Static-pattern evidence is a literal scan capped at 200 input characters and 20 matches.
+- `IncidentService` and audit-run provider gateways reserve and persist incident budget before the
+  provider is invoked. Incident reservations acquire SQLite's cross-connection write reservation
+  before reading the counter, preventing multiple workers from consuming the final slot. A busy
+  database produces a typed service-unavailable response. The deterministic audit nodes themselves
+  may use zero additional calls.
 
 ## 5. Agent Nodes
 
@@ -204,9 +213,10 @@ Ground-truth benchmark labels must never enter the searchable corpus.
 | `inspect_config` | Typed configuration lookup with redaction | None |
 | `find_tests` | Locate relevant test names/assertions | None |
 | `find_git_changes` | Read bounded commit/diff context | None |
-| `run_static_check` | Evaluate known AST/config predicates | None |
-| `run_test` | Execute selected allowlisted test | Test-side effects isolated |
-| `generate_guard` | Produce guard specification/preview | None until approval |
+| `run_static_check` | Evaluate numeric config, AST call/wiring, enabled-config, and bounded literal predicates | None |
+| `inspect_test_structure` | Require relevant imported symbols/calls and reject constant-only assertions | None |
+| `run_test` | Execute a generated/selected allowlisted test (Day 4) | Not implemented |
+| `generate_guard` | Produce guard specification/preview (Day 4) | Not implemented |
 
 Model output can select a tool and provide typed arguments, but never a command string.
 
@@ -249,7 +259,17 @@ OpenAPI output becomes the frontend/backend contract once the API skeleton exist
 
 ## 10. Storage
 
-SQLite stores application records, workflow state, FTS chunks, evidence metadata, approvals, and evaluation summaries. Large generated logs/artifacts are stored on disk with database references.
+SQLite stores application records, workflow state, FTS chunks, and evidence metadata. The Day 3
+application schema is explicitly versioned with `PRAGMA user_version = 2`; version 1 migrates by
+adding the incident lifecycle budget table, while unknown and unversioned non-empty schemas are
+rejected. An audit save is a complete transactional snapshot: absent child
+records are deleted, all project/incident/action/invariant/run relationships are validated, and any
+failure rolls the entire replacement back. Evidence graphs must contain exactly one correctly typed
+node per record and exactly the valid incident-to-action-to-invariant-to-evidence/check/verdict
+relationships for that run.
+
+Approval and evaluation persistence remain planned for later phases. Large generated logs/artifacts
+will be stored on disk with database references.
 
 Do not commit runtime databases, indexes, uploaded postmortems, generated guards, or evaluation artifacts unless they are curated fixtures.
 
@@ -258,13 +278,15 @@ Do not commit runtime databases, indexes, uploaded postmortems, generated guards
 Deterministic checks run before semantic aggregation.
 
 ```text
-all required checks pass and regression proof exists -> VERIFIED
+all required checks pass with meaningful implementation use and nontrivial regression proof -> VERIFIED
 some requirements pass, others absent/contradictory -> PARTIAL
 core implementation absent or core check fails       -> MISSING
 required context/runtime unavailable                  -> UNVERIFIABLE
 ```
 
 Confidence communicates uncertainty within the selected verdict. It cannot change verdict constraints.
+Declarations, identifiers, comments, string constants, disabled configuration keys, and
+constant-only or unrelated test assertions cannot establish implementation proof.
 
 Assessed protection coverage:
 

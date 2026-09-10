@@ -2,6 +2,14 @@
 
 from pydantic import Field
 
+from backend.app.audit.contracts import (
+    ActionVerdict,
+    AuditRunCreate,
+    AuditRunSummary,
+    EvidenceGraphEdge,
+    EvidenceGraphNode,
+    EvidenceRecord,
+)
 from backend.app.models import ActionItem, DomainModel, Incident, Project
 
 
@@ -33,3 +41,23 @@ class HealthResponse(DomainModel):
 
 class ActionItemResponse(ActionItem):
     pass
+
+
+class AuditRunResponse(AuditRunSummary):
+    pass
+
+
+class ActionVerdictsResponse(DomainModel):
+    verdicts: list[ActionVerdict]
+
+
+class EvidenceResponse(DomainModel):
+    evidence: list[EvidenceRecord]
+
+
+class EvidenceGraphResponse(DomainModel):
+    nodes: list[EvidenceGraphNode]
+    edges: list[EvidenceGraphEdge]
+
+
+__all__ = ["AuditRunCreate"]

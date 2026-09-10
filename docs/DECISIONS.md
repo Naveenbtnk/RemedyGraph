@@ -104,6 +104,43 @@ SHA-256 hash, converter name/version, and redacted normalized Markdown. Scanned/
 may be incomplete because LLM-powered OCR is intentionally disabled; conversion failures remain
 explicit ingestion failures rather than silently empty documents.
 
+## ADR-014: Structural Evidence Is Required for Verification
+
+**Status:** Accepted
+**Decision:** Python implementation checks accept calls, wiring, and explicitly enabled structured
+configuration—not declarations, identifiers, comments, or string-shaped keywords. Regression proof
+must structurally exercise a relevant imported implementation symbol or call; constant-only and
+unrelated assertions are rejected. Bounded literal-pattern matches are supporting-only evidence.
+**Reason:** Keyword-shaped code and trivial tests can otherwise create false `VERIFIED` verdicts.
+**Consequence:** The verifier is deliberately conservative and may return `PARTIAL` or `MISSING`
+until meaningful wiring and regression protection are visible in the repository.
+
+## ADR-015: Versioned Complete Audit Snapshots
+
+**Status:** Accepted
+**Decision:** Use SQLite `user_version` for the MVP schema and reject unsupported or unversioned
+non-empty databases. Treat `save_audit_state` as a complete replacement: validate every ownership
+and graph relationship, remove absent children, and write the replacement in one transaction.
+**Reason:** Upsert-only snapshots retain stale evidence, while ordinary single-column foreign keys
+cannot prevent cross-project, cross-run, or polymorphic graph corruption.
+**Consequence:** Day 3 creates schema version 2 and explicitly migrates version 1 by adding the
+incident lifecycle budget table. Future schema changes require another migration/version decision,
+and invalid snapshots fail without partial rows.
+
+## ADR-016: Persist Budget Before Bounded Work
+
+**Status:** Accepted
+**Decision:** Reserve and persist model-call budget before provider invocation, including attempts
+that fail. Corrective-action extraction and audit gateways share one stable incident counter with
+an absolute cap of six. Count investigation rounds once per actual retrieval round per invariant,
+independently of the number of check specifications. Reject work before a seventh model call or
+fourth round.
+**Reason:** Post-call accounting and spec-count accounting make limits inaccurate and unsafe.
+**Consequence:** Budget exhaustion is a typed terminal workflow failure with no automatic retry.
+Incident budget reservation uses an immediate SQLite write transaction so separate connections and
+workers cannot both consume the same final slot. SQLite lock exhaustion becomes a typed temporary
+storage failure rather than an unclassified server error.
+
 ## Decision Template
 
 ```markdown
