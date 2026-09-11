@@ -141,7 +141,6 @@ class VerdictEngine:
             if item.id in seen or item.role not in {
                 EvidenceRole.SUPPORTING,
                 EvidenceRole.CONTRADICTORY,
-                EvidenceRole.SUPPORTING_ONLY,
             }:
                 continue
             seen.add(item.id)

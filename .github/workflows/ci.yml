@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install backend
+        run: python -m pip install -e ".[dev]"
+      - name: Install frontend
+        run: npm ci --prefix frontend
+      - name: Backend quality and tests
+        run: |
+          ruff check .
+          ruff format --check .
+          mypy backend
+          python -m pytest -q
+      - name: Reproduce RemedyBench smoke evaluation
+        run: python -m backend.app.evaluation.cli --benchmark remedybench --check
+      - name: Frontend quality and build
+        run: |
+          npm run lint --prefix frontend
+          npm test --prefix frontend -- --run
+          npm run build --prefix frontend

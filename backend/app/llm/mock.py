@@ -13,13 +13,14 @@ class MockLLMProvider:
     _ACTION_PREFIX = re.compile(r"^\s*(?:[-*+] |\d+[.)] )")
     _ACTION_VERB = re.compile(
         r"\b(add|alert|bound|configure|confirm|create|decrease|define|document|enable|enforce|gate|"
-        r"increase|implement|limit|prove|reduce|remove|route|set|test|use|validate)\b",
+        r"increase|implement|limit|prove|reduce|reject|remove|return|route|serve|set|test|use|"
+        r"validate)\b",
         re.IGNORECASE,
     )
     _SPLIT = re.compile(
         r"\s*(?:;|\s+(?:and|&)\s+)(?=(?:add|alert|bound|configure|confirm|create|decrease|define|"
-        r"document|enable|enforce|gate|increase|implement|limit|prove|reduce|remove|route|set|test|"
-        r"use|validate)\b)",
+        r"document|enable|enforce|gate|increase|implement|limit|prove|reduce|reject|remove|return|"
+        r"route|serve|set|test|use|validate)\b)",
         re.IGNORECASE,
     )
 

@@ -31,6 +31,9 @@ dev = [
   "ruff>=0.8,<1.0",
 ]
 
+[project.scripts]
+remedygraph-eval = "backend.app.evaluation.cli:main"
+
 [tool.setuptools.packages.find]
 include = ["backend*"]
 
