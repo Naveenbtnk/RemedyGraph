@@ -36,6 +36,8 @@ Fast, deterministic, network-free tests for:
 - Verdict aggregation constraints.
 - Assessed protection coverage calculation.
 - Guard syntax/path validation.
+- Exact application-template and approved-digest validation; arbitrary imports, modified artifacts,
+  traversal, and symlink targets are rejected.
 - Provider timeout, malformed JSON, and schema-retry behavior.
 - Incident-lifecycle budget reservation: six extraction attempts allowed, seventh rejected, failed
   extraction charged, stable-incident resubmission unable to reset usage, and synchronized
@@ -56,6 +58,8 @@ Tests combining real internal components with a deterministic model stub:
 - Generated guard catches a seeded bad state.
 - Generated guard passes the corresponding good state.
 - Approval is required before guard writing/execution.
+- Preview and rejection leave the repository unchanged; approval writes only to the generated path.
+- Execution output is redacted and bounded, timeout is typed, and the command is application-owned.
 - Run persistence and reload.
 - Complete-snapshot shrink/replacement and rollback after a mid-transaction database failure.
 - Schema-version creation, version-1 migration, reopen, and unsupported-version rejection.
@@ -234,6 +238,8 @@ Update this section when package scripts are created. Do not retain commands tha
 
 - Guard approval boundary is enforced.
 - Seeded bad and good state guard tests pass.
+- Guard previews, approvals, execution summaries, and schema migration persist and reload.
+- Unsafe or modified artifacts cannot execute; timeout and output limits are covered.
 - Dashboard production build succeeds.
 
 ### Day 5 Gate

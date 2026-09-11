@@ -28,10 +28,11 @@ from backend.app.audit.contracts import (
     WorkflowEvent,
 )
 from backend.app.audit.graph import EvidenceGraphBuilder
+from backend.app.guards.contracts import GuardApproval, GuardExecution, GuardSpec, GuardStatus
 from backend.app.models import ActionItem, DomainModel, Incident, Project, RunStatus
 
 ModelT = TypeVar("ModelT", bound=DomainModel)
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 class UnsupportedSchemaVersion(RuntimeError):
@@ -91,7 +92,7 @@ class SQLiteStore:
 
     def _initialize_schema(self) -> None:
         version = self.schema_version
-        if version not in {0, 1, SCHEMA_VERSION}:
+        if version not in {0, 1, 2, SCHEMA_VERSION}:
             raise UnsupportedSchemaVersion(
                 f"database schema version {version} is unsupported; expected {SCHEMA_VERSION}"
             )
@@ -109,6 +110,10 @@ class SQLiteStore:
         if version == 1:
             self._migrate_v1_to_v2()
             tables.add("incident_budget_counters")
+            version = 2
+        if version == 2:
+            self._migrate_v2_to_v3()
+            tables.update({"guard_specs", "guard_approvals", "guard_executions"})
         required = {
             "projects",
             "incidents",
@@ -125,6 +130,9 @@ class SQLiteStore:
             "workflow_events",
             "budget_counters",
             "incident_budget_counters",
+            "guard_specs",
+            "guard_approvals",
+            "guard_executions",
         }
         if not required <= tables:
             raise UnsupportedSchemaVersion("versioned database is missing required tables")
@@ -210,12 +218,31 @@ class SQLiteStore:
                 CREATE TABLE budget_counters (
                     run_id TEXT PRIMARY KEY REFERENCES audit_runs(id) ON DELETE CASCADE, payload TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS guard_specs (
+                    id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES audit_runs(id) ON DELETE CASCADE,
+                    action_id TEXT NOT NULL REFERENCES corrective_actions(id), invariant_id TEXT NOT NULL,
+                    status TEXT NOT NULL, created_at TEXT NOT NULL, payload TEXT NOT NULL,
+                    FOREIGN KEY(invariant_id, run_id, action_id)
+                        REFERENCES compiled_invariants(id, run_id, action_id)
+                );
+                CREATE TABLE IF NOT EXISTS guard_approvals (
+                    guard_id TEXT PRIMARY KEY REFERENCES guard_specs(id) ON DELETE CASCADE,
+                    run_id TEXT NOT NULL REFERENCES audit_runs(id) ON DELETE CASCADE, payload TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS guard_executions (
+                    id TEXT PRIMARY KEY, guard_id TEXT NOT NULL REFERENCES guard_specs(id) ON DELETE CASCADE,
+                    run_id TEXT NOT NULL REFERENCES audit_runs(id) ON DELETE CASCADE,
+                    created_at TEXT NOT NULL, payload TEXT NOT NULL
+                );
                 CREATE INDEX idx_actions_incident ON corrective_actions(incident_id, ordering);
                 CREATE INDEX idx_invariants_run ON compiled_invariants(run_id, action_id);
                 CREATE INDEX idx_evidence_run ON evidence(run_id, invariant_id);
                 CREATE INDEX idx_checks_run ON deterministic_checks(run_id, invariant_id);
                 CREATE INDEX idx_results_run ON deterministic_check_results(run_id, invariant_id);
                 CREATE INDEX idx_verdicts_run ON verdicts(run_id, action_id);
+                CREATE INDEX IF NOT EXISTS idx_guards_run ON guard_specs(run_id, created_at, id);
+                CREATE INDEX IF NOT EXISTS idx_guard_executions_guard
+                    ON guard_executions(guard_id, created_at, id);
                 """
             )
             self.connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
@@ -244,6 +271,33 @@ class SQLiteStore:
                     "INSERT INTO incident_budget_counters(incident_id, payload) VALUES (?, ?)",
                     (incident_id, self._dump(migrated)),
                 )
+            self.connection.execute("PRAGMA user_version = 2")
+
+    def _migrate_v2_to_v3(self) -> None:
+        with self.connection:
+            self.connection.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS guard_specs (
+                    id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES audit_runs(id) ON DELETE CASCADE,
+                    action_id TEXT NOT NULL REFERENCES corrective_actions(id), invariant_id TEXT NOT NULL,
+                    status TEXT NOT NULL, created_at TEXT NOT NULL, payload TEXT NOT NULL,
+                    FOREIGN KEY(invariant_id, run_id, action_id)
+                        REFERENCES compiled_invariants(id, run_id, action_id)
+                );
+                CREATE TABLE IF NOT EXISTS guard_approvals (
+                    guard_id TEXT PRIMARY KEY REFERENCES guard_specs(id) ON DELETE CASCADE,
+                    run_id TEXT NOT NULL REFERENCES audit_runs(id) ON DELETE CASCADE, payload TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS guard_executions (
+                    id TEXT PRIMARY KEY, guard_id TEXT NOT NULL REFERENCES guard_specs(id) ON DELETE CASCADE,
+                    run_id TEXT NOT NULL REFERENCES audit_runs(id) ON DELETE CASCADE,
+                    created_at TEXT NOT NULL, payload TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_guards_run ON guard_specs(run_id, created_at, id);
+                CREATE INDEX IF NOT EXISTS idx_guard_executions_guard
+                    ON guard_executions(guard_id, created_at, id);
+                """
+            )
             self.connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
     def save_project(self, project: Project) -> None:
@@ -636,6 +690,138 @@ class SQLiteStore:
                 "SELECT payload FROM budget_counters WHERE run_id = ?", (run_id,)
             ).fetchone()
         return BudgetUsage.model_validate_json(row["payload"]) if row else None
+
+    def save_guard(self, guard: GuardSpec) -> None:
+        """Persist an immutable preview or update its lifecycle status."""
+
+        self._validate_guard(guard)
+        with self._lock, self.connection:
+            self.connection.execute(
+                "INSERT INTO guard_specs(id, run_id, action_id, invariant_id, status, created_at, payload) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(id) DO UPDATE SET status=excluded.status, payload=excluded.payload",
+                (
+                    guard.id,
+                    guard.run_id,
+                    guard.action_id,
+                    guard.invariant_id,
+                    guard.status.value,
+                    guard.created_at.isoformat(),
+                    self._dump(guard),
+                ),
+            )
+
+    def get_guard(self, guard_id: str) -> GuardSpec | None:
+        with self._lock:
+            row = self.connection.execute(
+                "SELECT payload FROM guard_specs WHERE id = ?", (guard_id,)
+            ).fetchone()
+        return GuardSpec.model_validate_json(row["payload"]) if row else None
+
+    def list_guards(self, run_id: str) -> list[GuardSpec]:
+        with self._lock:
+            rows = self.connection.execute(
+                "SELECT payload FROM guard_specs WHERE run_id = ? ORDER BY created_at, id",
+                (run_id,),
+            ).fetchall()
+        return [GuardSpec.model_validate_json(row["payload"]) for row in rows]
+
+    def record_guard_decision(self, guard: GuardSpec, approval: GuardApproval) -> None:
+        self._validate_guard(guard)
+        if approval.guard_id != guard.id or approval.run_id != guard.run_id:
+            raise AuditStateIntegrityError("guard approval ownership mismatch")
+        if approval.preview_sha256 != guard.preview_sha256:
+            raise AuditStateIntegrityError("guard approval does not match preview")
+        expected_status = GuardStatus.WRITTEN if approval.approved else GuardStatus.REJECTED
+        if guard.status != expected_status:
+            raise AuditStateIntegrityError("guard decision status is inconsistent")
+        with self._lock, self.connection:
+            existing = self.connection.execute(
+                "SELECT 1 FROM guard_approvals WHERE guard_id = ?", (guard.id,)
+            ).fetchone()
+            if existing is not None:
+                raise AuditStateIntegrityError("guard decision is immutable")
+            self.connection.execute(
+                "UPDATE guard_specs SET status = ?, payload = ? WHERE id = ? AND run_id = ?",
+                (guard.status.value, self._dump(guard), guard.id, guard.run_id),
+            )
+            self.connection.execute(
+                "INSERT INTO guard_approvals(guard_id, run_id, payload) VALUES (?, ?, ?)",
+                (guard.id, guard.run_id, self._dump(approval)),
+            )
+
+    def restore_guard_preview(self, guard: GuardSpec) -> None:
+        """Compensate a failed artifact write and remove its unusable approval."""
+
+        self._validate_guard(guard)
+        with self._lock, self.connection:
+            self.connection.execute("DELETE FROM guard_approvals WHERE guard_id = ?", (guard.id,))
+            self.connection.execute(
+                "UPDATE guard_specs SET status = ?, payload = ? WHERE id = ? AND run_id = ?",
+                (GuardStatus.PREVIEWED.value, self._dump(guard), guard.id, guard.run_id),
+            )
+
+    def get_guard_approval(self, guard_id: str) -> GuardApproval | None:
+        with self._lock:
+            row = self.connection.execute(
+                "SELECT payload FROM guard_approvals WHERE guard_id = ?", (guard_id,)
+            ).fetchone()
+        return GuardApproval.model_validate_json(row["payload"]) if row else None
+
+    def save_guard_execution(self, guard: GuardSpec, execution: GuardExecution) -> None:
+        self._validate_guard(guard)
+        approval = self.get_guard_approval(guard.id)
+        if approval is None or not approval.approved:
+            raise AuditStateIntegrityError("guard execution requires approval")
+        if execution.guard_id != guard.id or execution.run_id != guard.run_id:
+            raise AuditStateIntegrityError("guard execution ownership mismatch")
+        if execution.artifact_sha256 != guard.preview_sha256:
+            raise AuditStateIntegrityError("guard execution artifact differs from approved preview")
+        with self._lock, self.connection:
+            self.connection.execute(
+                "UPDATE guard_specs SET status = ?, payload = ? WHERE id = ? AND run_id = ?",
+                (guard.status.value, self._dump(guard), guard.id, guard.run_id),
+            )
+            self.connection.execute(
+                "INSERT INTO guard_executions(id, guard_id, run_id, created_at, payload) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (
+                    execution.id,
+                    execution.guard_id,
+                    execution.run_id,
+                    execution.created_at.isoformat(),
+                    self._dump(execution),
+                ),
+            )
+
+    def list_guard_executions(self, guard_id: str) -> list[GuardExecution]:
+        with self._lock:
+            rows = self.connection.execute(
+                "SELECT payload FROM guard_executions WHERE guard_id = ? ORDER BY created_at, id",
+                (guard_id,),
+            ).fetchall()
+        return [GuardExecution.model_validate_json(row["payload"]) for row in rows]
+
+    def _validate_guard(self, guard: GuardSpec) -> None:
+        summary = self.get_run_summary(guard.run_id)
+        if summary is None or summary.status != RunStatus.COMPLETE:
+            raise AuditStateIntegrityError("guard requires a completed audit run")
+        invariant = next(
+            (item for item in self.list_invariants(guard.run_id) if item.id == guard.invariant_id),
+            None,
+        )
+        verdict = next(
+            (
+                item
+                for item in self.list_verdicts(guard.run_id)
+                if item.action_id == guard.action_id
+            ),
+            None,
+        )
+        if invariant is None or invariant.action_id != guard.action_id:
+            raise AuditStateIntegrityError("guard invariant does not belong to action")
+        if verdict is None or verdict.verdict.value not in {"PARTIAL", "MISSING"}:
+            raise AuditStateIntegrityError("guards are limited to partial or missing actions")
 
     def load_audit_state(self, run_id: str) -> AuditWorkflowState | None:
         summary = self.get_run_summary(run_id)

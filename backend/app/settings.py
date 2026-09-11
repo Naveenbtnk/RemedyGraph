@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     max_index_bytes: int = Field(default=25_000_000, ge=1, le=2_000_000_000)
     max_index_files: int = Field(default=10_000, ge=1, le=1_000_000)
     retrieval_top_k: int = Field(default=8, ge=1, le=100)
+    guard_timeout_seconds: float = Field(default=5, gt=0, le=30)
+    guard_output_limit: int = Field(default=16_384, ge=1_024, le=65_536)
 
 
 @lru_cache(maxsize=1)

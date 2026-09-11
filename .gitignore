@@ -34,6 +34,7 @@ secrets/
 .chroma/
 artifacts/
 remedygraph_generated/
+.remedygraph/
 uploads/
 
 # IDE and OS

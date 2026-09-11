@@ -25,13 +25,13 @@ FastAPI modular monolith
   |-- Audit workflow (LangGraph)
   |-- Deterministic investigation tools
   |-- Hybrid retrieval
-  |-- Guard preview/execution service (Day 4, not yet implemented)
+  |-- Guard preview/approval/execution service
   |-- Evaluation service
   |
   +--> Local repository (read-only during audit)
   +--> SQLite + local vector index
   +--> Configurable LLM provider
-  +--> Isolated/allowlisted test subprocess (Day 4 boundary)
+  +--> Isolated/allowlisted guard subprocess
 ```
 
 ## 3. Component Responsibilities
@@ -60,9 +60,9 @@ FastAPI modular monolith
 
 - Provides explicit stages, typed state, bounded loops, failure handling, and resumable run metadata.
 - Logical nodes are not separate network services.
-- The implemented Day 3 graph is `compile -> index -> investigate -> verify`. It performs one
-  retrieval round per invariant, then evaluates all of that invariant's allowlisted check specs.
-- Guard generation, repository writes, and subprocess execution are not part of the Day 3 graph.
+- The audit graph keeps explicit load, compile, retrieve, investigate/check, verdict, graph, and
+  persistence nodes. Guard lifecycle operations remain outside that graph behind separate approval
+  APIs so an audit can never write or execute generated content by itself.
 
 ### Deterministic Tool Layer
 
@@ -215,8 +215,8 @@ Ground-truth benchmark labels must never enter the searchable corpus.
 | `find_git_changes` | Read bounded commit/diff context | None |
 | `run_static_check` | Evaluate numeric config, AST call/wiring, enabled-config, and bounded literal predicates | None |
 | `inspect_test_structure` | Require relevant imported symbols/calls and reject constant-only assertions | None |
-| `run_test` | Execute a generated/selected allowlisted test (Day 4) | Not implemented |
-| `generate_guard` | Produce guard specification/preview (Day 4) | Not implemented |
+| `run_test` | Execute an approved application-templated guard | Fixed isolated Python invocation |
+| `generate_guard` | Produce deterministic guard specification/preview | Preview-only; no write |
 
 Model output can select a tool and provide typed arguments, but never a command string.
 
@@ -259,17 +259,17 @@ OpenAPI output becomes the frontend/backend contract once the API skeleton exist
 
 ## 10. Storage
 
-SQLite stores application records, workflow state, FTS chunks, and evidence metadata. The Day 3
-application schema is explicitly versioned with `PRAGMA user_version = 2`; version 1 migrates by
-adding the incident lifecycle budget table, while unknown and unversioned non-empty schemas are
+SQLite stores application records, workflow state, FTS chunks, evidence metadata, guard previews,
+approval decisions, and bounded execution records. Schema version 3 adds guard lifecycle tables;
+versions 1 and 2 migrate forward explicitly, while unknown and unversioned non-empty schemas are
 rejected. An audit save is a complete transactional snapshot: absent child
 records are deleted, all project/incident/action/invariant/run relationships are validated, and any
 failure rolls the entire replacement back. Evidence graphs must contain exactly one correctly typed
 node per record and exactly the valid incident-to-action-to-invariant-to-evidence/check/verdict
 relationships for that run.
 
-Approval and evaluation persistence remain planned for later phases. Large generated logs/artifacts
-will be stored on disk with database references.
+Guard approvals and bounded execution summaries are persisted. Generated artifacts exist only below
+`.remedygraph/generated_guards/<run>/<guard>.py`; evaluation persistence remains planned.
 
 Do not commit runtime databases, indexes, uploaded postmortems, generated guards, or evaluation artifacts unless they are curated fixtures.
 
@@ -306,6 +306,11 @@ coverage = weighted verdict value / assessed weight * 100
 4. Backend writes only under a generated/temporary guard directory.
 5. Runner selects a predefined command, scrubs environment, disables network when possible, applies timeout/output caps, and records results.
 6. Promoting a guard into project tests remains a separate human-reviewed operation.
+
+The executable preview must byte-for-byte match the current application-owned deterministic
+template and its approved SHA-256 hash. The runner uses an absolute Python executable with
+`-I -S -B`, `shell=False`, closed stdin, a scrubbed environment, proxy-denied network defaults,
+and bounded captured output. No command or import is accepted from a model or API client.
 
 ## 13. Security
 

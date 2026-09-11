@@ -1,8 +1,8 @@
 # RemedyGraph Implementation Status
 
-**Last updated:** 2026-09-10
-**Current phase:** Phase 3 — Day 3 audit and deterministic verification
-**Overall status:** Day 3 complete; ready for Day 4 guard and dashboard integration
+**Last updated:** 2026-09-11
+**Current phase:** Phase 4 — guard lifecycle and dashboard vertical slice
+**Overall status:** Day 4 implementation complete; ready for Day 5 evaluation and demo packaging
 
 ## Completed
 
@@ -77,11 +77,22 @@
 - Incident model-call reservation takes an immediate SQLite write transaction before reading the
   counter, so independent connections/workers cannot both consume the final slot; lock exhaustion
   returns a typed `503 storage_busy` response before provider invocation.
+- Deterministic guard previews are generated only for `PARTIAL` and `MISSING` actions and remain
+  read-only until a per-preview SHA-256 approval decision is recorded.
+- Approved artifacts write only below `.remedygraph/generated_guards/<run>` and execute through an
+  application-owned `python -I -S -B` command with `shell=False`, closed input, scrubbed environment,
+  proxy-denied network defaults, timeout, redacted output, and byte caps.
+- Schema version 3 persists guard previews, immutable approval decisions, and execution history,
+  with explicit migrations from versions 1 and 2.
+- The React dashboard now creates local audits and displays status, bounded usage, assessed
+  protection coverage, action verdicts, missing proof, located evidence, an accessible graph
+  inventory, guard previews, approval controls, and execution results.
 
 ## Files Changed
 
 - `pyproject.toml`
 - `backend/app/audit/**`, `backend/app/storage.py`
+- `backend/app/guards/**`
 - `backend/app/llm/mock.py`, `backend/app/main.py`, `backend/app/models.py`
 - `backend/app/schemas.py`, `backend/app/services.py`, `backend/app/settings.py`
 - `tests/unit/test_audit_core.py`, `tests/unit/test_audit_budget_gateway.py`
@@ -89,22 +100,23 @@
 - `tests/integration/test_audit_workflow.py`, `tests/integration/test_audit_persistence_integrity.py`
 - `tests/api/test_api.py`
 - `tests/api/test_app_lifecycle.py`, `tests/conftest.py`
+- `tests/integration/test_guard_lifecycle.py`, `tests/unit/test_guard_runner.py`
+- `frontend/src/App.tsx`, `frontend/src/styles.css`, `frontend/src/App.test.tsx`
+- `.env.example`, `.gitignore`
 - `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/TESTING.md`, `docs/STATUS.md`
 
 ## Not Started
 
-- Guard generation/execution.
-- Frontend/API dashboard integration.
 - RemedyBench cases and evaluation.
 - CI and deployment/demo artifacts.
 
 ## Verification
 
-- `python -m pytest` — 91 passed.
+- `python -m pytest` — 99 passed.
 - `ruff check .` and `ruff format --check .` — passed.
 - `mypy backend` — passed.
 - `npm run lint --prefix frontend` — passed.
-- `npm test --prefix frontend` — 1 passed.
+- `npm test --prefix frontend` — 2 passed.
 - `npm run build --prefix frontend` — passed.
 - `python -m compileall -q backend tests` — passed.
 
@@ -115,25 +127,27 @@
 - The mock provider makes no network calls. Each corrective-action extraction still consumes one
   persisted incident-level model attempt; deterministic audit compilation and verification consume
   no additional calls.
-- The frontend is a static dashboard shell; it is not connected to the API yet.
+- The dashboard expects the local API at `http://localhost:8000/api/v1` unless
+  `VITE_API_BASE_URL` is configured.
 - MarkItDown is optional; scanned/image-only documents may be incomplete because plugins and
   LLM-powered OCR are disabled. Conversion failures are reported and indexing continues.
 - Sentence-transformer embeddings require an explicitly installed optional dependency and a model
   already available locally. The deterministic fake encoder is used in default tests.
 - The semantic vector snapshot remains process-local; durable vector-backend lifecycle management
   is outside the Day 3 bounded-audit scope.
-- Test/protection verification is Python-first structural analysis. It does not execute repository
-  tests; isolated execution of generated guards remains intentionally deferred to Day 4.
-- Guard generation/execution, dashboard integration, and evaluation remain unimplemented.
+- Test/protection verification is Python-first structural analysis. Audit runs do not execute the
+  repository's own test suite; only separately approved application-templated guards can execute.
+- Guard templates are deliberately narrow static repository assertions; promoting a preview into a
+  maintained project test remains a separate human-reviewed operation.
+- Process-level network isolation is platform-dependent; exact template validation prevents guard
+  code from importing network or process modules, and proxy variables are denied by default.
+- Evaluation remains unimplemented.
 
 ## Next Task
 
-Implement only the Day 4 guard preview/approval/execution boundary and frontend integration against
-the existing persisted audit APIs. Generate previews without repository mutation; require explicit
-per-guard approval before writing; write only to an isolated generated-guard directory; execute only
-fixed allowlisted commands with scrubbed environment, network restriction where possible, timeout
-and output caps; persist approval/execution evidence; connect run status, budget, verdict, evidence,
-graph, and guard controls in the dashboard; retain the Day 3 deterministic verdict constraints.
+Implement Day 5 RemedyBench smoke fixtures and reproducible evaluation, CI, README setup/demo
+instructions, saved measured results, screenshots, and deployment guidance. Preserve all approval,
+verdict, path, budget, and execution safety boundaries; never publish placeholder metrics.
 
 ## Current Agent Allocation
 

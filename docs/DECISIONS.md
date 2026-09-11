@@ -141,6 +141,19 @@ Incident budget reservation uses an immediate SQLite write transaction so separa
 workers cannot both consume the same final slot. SQLite lock exhaustion becomes a typed temporary
 storage failure rather than an unclassified server error.
 
+## ADR-017: Application-Owned Guard Templates and Per-Preview Approval
+
+**Status:** Accepted
+**Decision:** Generate guards only for `PARTIAL` or `MISSING` actions using versioned,
+application-owned deterministic templates. Preview generation is read-only. A user decision binds
+to the preview SHA-256; approval writes only below `.remedygraph/generated_guards`, and execution
+uses one fixed isolated Python command with no shell, a scrubbed environment, timeout, and output
+caps. Rejection never writes. Promotion into repository tests remains manual.
+**Reason:** Syntax checks and broad import allowlists cannot make arbitrary model-generated Python
+safe. Exact template and digest binding make the execution surface small and reviewable.
+**Consequence:** The MVP guard vocabulary is intentionally narrow. New guard types require a new
+versioned application template, validation rules, and seeded good/bad tests.
+
 ## Decision Template
 
 ```markdown

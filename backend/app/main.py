@@ -9,6 +9,9 @@ from fastapi.responses import JSONResponse
 
 from backend.app.audit.budget import BudgetExceeded
 from backend.app.audit.workflow import AuditWorkflow
+from backend.app.guards.contracts import GuardExecution, GuardSpec
+from backend.app.guards.runner import GuardSafetyError
+from backend.app.guards.service import GuardService
 from backend.app.llm.mock import MockLLMProvider
 from backend.app.schemas import (
     ActionVerdictsResponse,
@@ -16,6 +19,9 @@ from backend.app.schemas import (
     AuditRunResponse,
     EvidenceGraphResponse,
     EvidenceResponse,
+    GuardApprovalRequest,
+    GuardExecutionsResponse,
+    GuardPreviewsResponse,
     HealthResponse,
     IncidentCreate,
     IncidentResponse,
@@ -35,6 +41,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     incident_service = IncidentService(store, provider, resolved_settings.max_model_calls)
     audit_workflow = AuditWorkflow(store, resolved_settings)
     audit_service = AuditService(store, audit_workflow)
+    guard_service = GuardService(
+        store,
+        resolved_settings.workspace_root,
+        timeout_seconds=resolved_settings.guard_timeout_seconds,
+        output_limit=resolved_settings.guard_output_limit,
+    )
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
@@ -61,6 +73,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content={"detail": str(exc), "failure_code": exc.failure_code},
+        )
+
+    @app.exception_handler(GuardSafetyError)
+    def guard_safety_error(_request: Request, exc: GuardSafetyError) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            content={"detail": str(exc), "failure_code": "guard_safety_violation"},
         )
 
     app.add_middleware(
@@ -108,9 +127,51 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         state = audit_service.state(run_id)
         return EvidenceGraphResponse(nodes=state.graph_nodes, edges=state.graph_edges)
 
+    @api.post(
+        "/runs/{run_id}/guards/preview",
+        response_model=GuardPreviewsResponse,
+        tags=["guards"],
+    )
+    def preview_guards(run_id: str) -> GuardPreviewsResponse:
+        return GuardPreviewsResponse(guards=guard_service.preview(run_id))
+
+    @api.get("/runs/{run_id}/guards", response_model=GuardPreviewsResponse, tags=["guards"])
+    def list_guards(run_id: str) -> GuardPreviewsResponse:
+        return GuardPreviewsResponse(guards=guard_service.list_guards(run_id))
+
+    @api.post(
+        "/runs/{run_id}/guards/{guard_id}/approve",
+        response_model=GuardSpec,
+        tags=["guards"],
+    )
+    def approve_guard(run_id: str, guard_id: str, request: GuardApprovalRequest) -> GuardSpec:
+        return guard_service.decide(
+            run_id,
+            guard_id,
+            approved=request.approved,
+            preview_sha256=request.preview_sha256,
+        )
+
+    @api.post(
+        "/runs/{run_id}/guards/{guard_id}/execute",
+        response_model=GuardExecution,
+        tags=["guards"],
+    )
+    def execute_guard(run_id: str, guard_id: str) -> GuardExecution:
+        return guard_service.execute(run_id, guard_id)
+
+    @api.get(
+        "/runs/{run_id}/guards/{guard_id}/executions",
+        response_model=GuardExecutionsResponse,
+        tags=["guards"],
+    )
+    def list_guard_executions(run_id: str, guard_id: str) -> GuardExecutionsResponse:
+        return GuardExecutionsResponse(executions=guard_service.executions(run_id, guard_id))
+
     app.include_router(api)
     app.state.store = store
     app.state.audit_workflow = audit_workflow
+    app.state.guard_service = guard_service
     return app
 
 

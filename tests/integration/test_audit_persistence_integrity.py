@@ -134,6 +134,30 @@ def test_version_one_database_migrates_incident_budget_table(tmp_path: Path) -> 
     migrated.close()
 
 
+def test_version_two_database_migrates_guard_lifecycle_tables(tmp_path: Path) -> None:
+    database = tmp_path / "version-two.sqlite3"
+    store = SQLiteStore(database)
+    store.connection.executescript(
+        """
+        DROP TABLE guard_executions;
+        DROP TABLE guard_approvals;
+        DROP TABLE guard_specs;
+        PRAGMA user_version = 2;
+        """
+    )
+    store.close()
+
+    migrated = SQLiteStore(database)
+
+    assert migrated.schema_version == SCHEMA_VERSION
+    tables = {
+        str(row[0])
+        for row in migrated.connection.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    }
+    assert {"guard_specs", "guard_approvals", "guard_executions"} <= tables
+    migrated.close()
+
+
 def test_store_rejects_cross_project_run_without_partial_rows(tmp_path: Path) -> None:
     repository_1 = tmp_path / "one"
     repository_2 = tmp_path / "two"

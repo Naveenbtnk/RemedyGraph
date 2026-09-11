@@ -200,3 +200,16 @@ def test_database_lock_returns_typed_service_unavailable(tmp_path) -> None:
         "detail": "storage is temporarily busy; retry later",
         "failure_code": "storage_busy",
     }
+
+
+def test_guard_api_contract_and_unknown_run(client) -> None:
+    paths = client.get("/openapi.json").json()["paths"]
+    assert {
+        "/api/v1/runs/{run_id}/guards/preview",
+        "/api/v1/runs/{run_id}/guards",
+        "/api/v1/runs/{run_id}/guards/{guard_id}/approve",
+        "/api/v1/runs/{run_id}/guards/{guard_id}/execute",
+        "/api/v1/runs/{run_id}/guards/{guard_id}/executions",
+    } <= set(paths)
+    assert client.post("/api/v1/runs/run_missing/guards/preview").status_code == 404
+    assert client.get("/api/v1/runs/run_missing/guards").status_code == 404

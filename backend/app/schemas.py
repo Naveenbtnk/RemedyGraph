@@ -10,6 +10,7 @@ from backend.app.audit.contracts import (
     EvidenceGraphNode,
     EvidenceRecord,
 )
+from backend.app.guards.contracts import GuardExecution, GuardSpec
 from backend.app.models import ActionItem, DomainModel, Incident, Project
 
 
@@ -58,6 +59,19 @@ class EvidenceResponse(DomainModel):
 class EvidenceGraphResponse(DomainModel):
     nodes: list[EvidenceGraphNode]
     edges: list[EvidenceGraphEdge]
+
+
+class GuardPreviewsResponse(DomainModel):
+    guards: list[GuardSpec]
+
+
+class GuardApprovalRequest(DomainModel):
+    approved: bool
+    preview_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class GuardExecutionsResponse(DomainModel):
+    executions: list[GuardExecution]
 
 
 __all__ = ["AuditRunCreate"]
