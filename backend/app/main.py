@@ -85,9 +85,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[resolved_settings.frontend_origin],
-        allow_credentials=True,
+        allow_credentials=False,
         allow_methods=["GET", "POST"],
-        allow_headers=["*"],
+        allow_headers=["Content-Type"],
     )
 
     api = APIRouter(prefix="/api/v1")

@@ -1,8 +1,8 @@
 # RemedyGraph Implementation Status
 
 **Last updated:** 2026-09-11
-**Current phase:** Phase 4 — guard lifecycle and dashboard vertical slice
-**Overall status:** Day 4 implementation complete; ready for Day 5 evaluation and demo packaging
+**Current phase:** Phase 5 — RemedyBench evaluation and demo packaging
+**Overall status:** Five-day MVP implementation complete; ready for release review
 
 ## Completed
 
@@ -87,6 +87,25 @@
 - The React dashboard now creates local audits and displays status, bounded usage, assessed
   protection coverage, action verdicts, missing proof, located evidence, an accessible graph
   inventory, guard previews, approval controls, and execution results.
+- The dashboard now uses a responsive monochrome clay visual system with professional black
+  typography, raised and inset surfaces, accessible non-color verdict treatments, and a clearer
+  audit-first information hierarchy without AI-generator or chat styling.
+- Frontend release hardening adds bounded API requests, focused and announced errors, operation-
+  specific live status, semantic progress, keyboard skip navigation, input limits aligned with the
+  API, and restrictive Vite development/preview security headers; the dependency audit is clean.
+- Browser API calls explicitly omit credentials and referrers; backend CORS accepts only the exact
+  configured frontend origin and `Content-Type`, with a regression test rejecting an untrusted
+  origin.
+- RemedyBench smoke version 0.1.0 contains five entirely synthetic incidents and 15 annotated
+  actions spanning timeout, retry jitter, circuit breaker/fallback, queue bounds, feature flags,
+  hard negatives, and all four verdict classes.
+- A typed CLI evaluator runs extraction, invariant compilation, retrieval, citation, verdict, and
+  guard checks against disposable repository copies and records commit/hash/configuration metadata.
+- The saved measured result records 1.0 extraction F1, Evidence Recall@5, citation accuracy,
+  verification macro-F1, guard runnable rate, and seeded-bad-state detection on this bounded smoke
+  set; unsupported/document-only VERIFIED rates are zero and average model calls are 1.0.
+- Network-free GitHub Actions, an updated quickstart, local-first deployment guidance, and a real
+  dashboard capture complete the reproducible portfolio package.
 
 ## Files Changed
 
@@ -104,21 +123,26 @@
 - `frontend/src/App.tsx`, `frontend/src/styles.css`, `frontend/src/App.test.tsx`
 - `.env.example`, `.gitignore`
 - `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/TESTING.md`, `docs/STATUS.md`
+- `backend/app/evaluation/**`, `remedybench/**`, `evals/results/remedybench-smoke.json`
+- `.github/workflows/ci.yml`, `docs/DEPLOYMENT.md`, `docs/images/dashboard.png`, `README.md`
 
-## Not Started
+## Deferred Beyond the Five-Day MVP
 
-- RemedyBench cases and evaluation.
-- CI and deployment/demo artifacts.
+- Evaluation HTTP endpoints and database-backed evaluation history; the implemented interface is
+  the reproducible CLI plus saved JSON artifact.
+- Expansion from the five-case smoke set to all 15 planned RemedyBench incidents.
+- Authenticated multi-tenant or public-cloud repository execution.
 
 ## Verification
 
-- `python -m pytest` — 99 passed.
+- `python -m pytest` — 103 passed.
 - `ruff check .` and `ruff format --check .` — passed.
 - `mypy backend` — passed.
 - `npm run lint --prefix frontend` — passed.
 - `npm test --prefix frontend` — 2 passed.
 - `npm run build --prefix frontend` — passed.
 - `python -m compileall -q backend tests` — passed.
+- `python -m backend.app.evaluation.cli --benchmark remedybench --check` — passed.
 
 ## Limitations
 
@@ -141,13 +165,14 @@
   maintained project test remains a separate human-reviewed operation.
 - Process-level network isolation is platform-dependent; exact template validation prevents guard
   code from importing network or process modules, and proxy variables are denied by default.
-- Evaluation remains unimplemented.
+- Published perfect scores are limited to the small deterministic smoke set and must not be
+  interpreted as production generalization. The full 15-case plan remains future work.
 
 ## Next Task
 
-Implement Day 5 RemedyBench smoke fixtures and reproducible evaluation, CI, README setup/demo
-instructions, saved measured results, screenshots, and deployment guidance. Preserve all approval,
-verdict, path, budget, and execution safety boundaries; never publish placeholder metrics.
+Perform an independent release review, merge the Day 5 branch into local `main`, and push only after
+explicit approval. Future work can expand RemedyBench to 15 incidents and add persisted evaluation
+APIs without weakening existing verdict, approval, path, budget, or execution constraints.
 
 ## Current Agent Allocation
 

@@ -252,8 +252,8 @@ Identifiers must be stable within an audit and opaque to the frontend.
 | `POST` | `/api/v1/runs/{run_id}/guards/preview` | Create guard previews |
 | `POST` | `/api/v1/runs/{run_id}/guards/{guard_id}/approve` | Record approval |
 | `POST` | `/api/v1/runs/{run_id}/guards/{guard_id}/execute` | Execute approved guard |
-| `POST` | `/api/v1/evaluations` | Run benchmark evaluation |
-| `GET` | `/api/v1/evaluations/{evaluation_id}` | Evaluation status/results |
+| `POST` | `/api/v1/evaluations` | Planned post-MVP API; CLI evaluator is implemented |
+| `GET` | `/api/v1/evaluations/{evaluation_id}` | Planned post-MVP API; saved JSON is implemented |
 
 OpenAPI output becomes the frontend/backend contract once the API skeleton exists.
 

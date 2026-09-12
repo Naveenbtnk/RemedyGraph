@@ -67,6 +67,24 @@ jitter, circuit breaker/fallback, queue bounds, feature flags, hard-negative doc
 four verdict classes. Published numbers in this README come only from
 [`evals/results/remedybench-smoke.json`](evals/results/remedybench-smoke.json).
 
+### Measured smoke results
+
+| Metric | Measured result |
+|---|---:|
+| Action extraction F1 | 1.000 |
+| Evidence Recall@5 | 1.000 |
+| Citation accuracy | 1.000 |
+| Verification macro-F1 | 1.000 |
+| Guard runnable rate | 1.000 |
+| Guard seeded-bad-state detection | 1.000 |
+| Average model calls per incident | 1.000 |
+| P50 / P95 duration | 219.259 ms / 256.944 ms |
+
+These are measured results for the bundled five-case deterministic smoke set, not evidence of
+generalization to arbitrary production repositories. The JSON artifact records every prediction,
+the implementation commit, benchmark hash, provider, prompt version, configuration, timestamps,
+and per-case durations.
+
 ## Verify the project
 
 ```powershell

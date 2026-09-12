@@ -15,6 +15,12 @@ Static frontend hosting alone cannot perform repository audits. A public backend
 isolation, authentication, a hardened operating-system sandbox, quotas, encrypted storage, and a
 separate disposable worker. Those are intentionally outside the five-day MVP.
 
+Production frontend hosting must reproduce the security headers configured for Vite preview:
+restrict scripts and styles to the same origin, deny framing and object embedding, disable camera,
+microphone, and geolocation, use `nosniff`, and omit referrer data. Keep the API CORS origin set to
+the exact frontend origin; the MVP intentionally accepts neither cross-origin credentials nor
+request headers beyond `Content-Type`.
+
 ## Free-cost operation
 
 - Backend and frontend run locally with Python and Node.js.
