@@ -309,7 +309,9 @@ class RemedyBenchEvaluator:
             relative = path.relative_to(self.benchmark_root).as_posix()
             digest.update(relative.encode("utf-8"))
             digest.update(b"\0")
-            digest.update(path.read_bytes())
+            # Git may materialize text fixtures with CRLF on Windows. Hash their
+            # logical content so the same benchmark has one cross-platform ID.
+            digest.update(path.read_bytes().replace(b"\r\n", b"\n"))
             digest.update(b"\0")
         return digest.hexdigest()
 

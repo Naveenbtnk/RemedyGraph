@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 from backend.app.evaluation.contracts import EvaluationReport
@@ -44,3 +45,17 @@ def test_remedybench_contains_all_four_verdict_classes() -> None:
 
     assert verdicts == {"VERIFIED", "PARTIAL", "MISSING", "UNVERIFIABLE"}
     assert evaluator.manifest.provenance.synthetic is True
+
+
+def test_benchmark_hash_is_independent_of_checkout_line_endings(tmp_path: Path) -> None:
+    root = Path(__file__).parents[2]
+    benchmark = root / "remedybench"
+    copied = tmp_path / "remedybench"
+    shutil.copytree(benchmark, copied)
+    for path in copied.rglob("*"):
+        if path.is_file():
+            path.write_bytes(path.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
+
+    assert RemedyBenchEvaluator(benchmark)._benchmark_hash() == (
+        RemedyBenchEvaluator(copied)._benchmark_hash()
+    )

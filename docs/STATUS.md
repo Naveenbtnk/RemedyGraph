@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-13
 **Current phase:** Phase 5 — RemedyBench evaluation and demo packaging
-**Overall status:** Five-day MVP implementation complete; ready for release review
+**Overall status:** Five-day MVP locally integrated on `main`; remote publication pending approval
 
 ## Completed
 
@@ -109,6 +109,8 @@
 - Release review restored the tracked RemedyBench JSON artifact referenced by the README, aligned
   the published latency figures to that artifact, and added a regression check for artifact
   presence, benchmark hash, aggregate metrics, and per-action predictions.
+- Post-merge verification exposed CRLF/LF differences between Windows worktrees; benchmark hashing
+  now canonicalizes line endings, with a cross-checkout regression test.
 
 ## Files Changed
 
@@ -138,7 +140,7 @@
 
 ## Verification
 
-- `python -m pytest` — 103 passed.
+- `python -m pytest` — 104 passed.
 - `ruff check .` and `ruff format --check .` — passed.
 - `mypy backend` — passed.
 - `npm run lint --prefix frontend` — passed.
@@ -173,9 +175,9 @@
 
 ## Next Task
 
-Perform an independent release review, merge the Day 5 branch into local `main`, and push only after
-explicit approval. Future work can expand RemedyBench to 15 incidents and add persisted evaluation
-APIs without weakening existing verdict, approval, path, budget, or execution constraints.
+Obtain explicit approval before pushing the locally integrated `main` branch. Future work can expand
+RemedyBench to 15 incidents and add persisted evaluation APIs without weakening existing verdict,
+approval, path, budget, or execution constraints.
 
 ## Current Agent Allocation
 

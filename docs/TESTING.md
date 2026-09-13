@@ -158,6 +158,7 @@ Every evaluation result stores:
 
 - Repository commit.
 - RemedyBench version/hash.
+- Benchmark hash canonicalizes text-fixture CRLF/LF line endings across checkouts.
 - Provider and exact model name.
 - Prompt version.
 - Retrieval/check configuration.
