@@ -305,8 +305,8 @@ class DeterministicCheckRunner:
         started: float,
     ) -> CheckExecution:
         query = self._test_query(str(spec.parameters.get("query", "")))
-        query_terms = [self._normalize_key(str(term)) for term in spec.parameters.get("terms", [])]
-        query_terms = [term for term in query_terms if term] or [
+        query_terms = [self._test_term(str(term)) for term in spec.parameters.get("terms", [])]
+        query_terms = [term for term in query_terms if term not in {"", "regression", "test"}] or [
             self._normalize_key(term) for term in query.split()
         ]
         matches: list[tuple[str, str, int, int, str]] = []
@@ -552,7 +552,8 @@ class DeterministicCheckRunner:
             if not exercised_refs:
                 continue
             haystack = self._normalize_key(" ".join(exercised_refs))
-            if terms and not any(term in haystack for term in terms):
+            required_matches = min(2, len(terms))
+            if terms and sum(term in haystack for term in terms) < required_matches:
                 continue
             end_line = int(getattr(function, "end_lineno", function.lineno))
             excerpt = "\n".join(lines[function.lineno - 1 : end_line])
@@ -629,6 +630,13 @@ class DeterministicCheckRunner:
             if term.lower() not in stop
         ]
         return " ".join(terms)
+
+    @classmethod
+    def _test_term(cls, value: str) -> str:
+        normalized = cls._normalize_key(value)
+        return {"recovery": "recover", "retries": "retry", "tests": "test"}.get(
+            normalized, normalized
+        )
 
     @staticmethod
     def _absence(

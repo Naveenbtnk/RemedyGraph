@@ -16,6 +16,32 @@ def test_health(client) -> None:
     assert response.json()["version"] == "0.1.0"
 
 
+def test_cors_allows_only_configured_frontend_without_credentials(client) -> None:
+    allowed = client.options(
+        "/api/v1/projects",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "Content-Type",
+        },
+    )
+
+    assert allowed.status_code == 200
+    assert allowed.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert "access-control-allow-credentials" not in allowed.headers
+    assert "content-type" in allowed.headers["access-control-allow-headers"].lower()
+
+    denied = client.options(
+        "/api/v1/projects",
+        headers={
+            "Origin": "https://untrusted.example",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+    assert denied.status_code == 400
+    assert "access-control-allow-origin" not in denied.headers
+
+
 def test_project_and_incident_endpoints_return_typed_records(client, tmp_path) -> None:
     project_response = client.post(
         "/api/v1/projects",

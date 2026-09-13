@@ -281,3 +281,33 @@ def test_document_or_git_only_support_cannot_produce_verified(kind: EvidenceKind
 
     assert verdict.verdict != Verdict.VERIFIED
     assert verdict.missing_proofs
+    assert verdict.citations == []
+
+
+def test_regression_match_rejects_one_generic_overlapping_term(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    (repository / "tests").mkdir(parents=True)
+    (repository / "catalog.py").write_text(
+        "def recover_half_open():\n    return True\n", encoding="utf-8"
+    )
+    (repository / "tests" / "test_catalog.py").write_text(
+        "from catalog import recover_half_open\n\n"
+        "def test_half_open():\n    assert recover_half_open()\n",
+        encoding="utf-8",
+    )
+    spec = DeterministicCheckSpec(
+        id="check_1",
+        invariant_id="invariant_1",
+        check_type=DeterministicCheckType.TEST_PROTECTION,
+        description="require a relevant fallback test",
+        parameters={
+            "query": "Serve a safe fallback while open",
+            "terms": ["safe", "fallback", "open"],
+        },
+    )
+
+    execution = DeterministicCheckRunner(tmp_path, repository).run(
+        spec, run_id="run_1", action_id="action_1"
+    )
+
+    assert execution.result.outcome == CheckOutcome.NOT_FOUND

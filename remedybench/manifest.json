@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "benchmark_version": "0.1.0-smoke",
+  "prompt_version": "extract-actions-v1",
+  "provenance": {
+    "license": "CC0-1.0",
+    "synthetic": true,
+    "author": "RemedyGraph contributors",
+    "created": "2026-09-11",
+    "statement": "All incident prose, code, names, settings, and evidence in this smoke set were newly authored as synthetic material."
+  },
+  "cases": [
+    {
+      "id": "I02",
+      "title": "Checkout hangs on payments",
+      "incident_path": "incidents/I02.md",
+      "repository_path": "repositories/I02",
+      "actions": [
+        {
+          "id": "A02.1",
+          "text": "Set payment timeout to 5 seconds",
+          "verdict": "VERIFIED",
+          "requirement_kind": "numeric_configuration",
+          "gold_evidence_paths": ["payments.py", "tests/test_payments.py"],
+          "acceptable_citation_paths": ["payments.py", "tests/test_payments.py"]
+        },
+        {
+          "id": "A02.2",
+          "text": "Return typed timeout error",
+          "verdict": "MISSING",
+          "requirement_kind": "code_static",
+          "acceptable_citation_paths": ["payments.py", "README.md"],
+          "expected_guard_type": "static_repository"
+        },
+        {
+          "id": "A02.3",
+          "text": "Confirm external gateway deadline exceeds client deadline",
+          "verdict": "UNVERIFIABLE",
+          "requirement_kind": "runtime_context"
+        }
+      ]
+    },
+    {
+      "id": "I03",
+      "title": "Notification retry storm",
+      "incident_path": "incidents/I03.md",
+      "repository_path": "repositories/I03",
+      "actions": [
+        {
+          "id": "A03.1",
+          "text": "Bound retries to 3",
+          "verdict": "PARTIAL",
+          "requirement_kind": "numeric_configuration",
+          "gold_evidence_paths": ["retry.py"],
+          "acceptable_citation_paths": ["retry.py", "README.md"],
+          "expected_guard_type": "test_protection"
+        },
+        {
+          "id": "A03.2",
+          "text": "Use capped exponential backoff with jitter",
+          "verdict": "VERIFIED",
+          "requirement_kind": "code_static",
+          "gold_evidence_paths": ["retry.py", "tests/test_retry.py"],
+          "acceptable_citation_paths": ["retry.py", "tests/test_retry.py"]
+        },
+        {
+          "id": "A03.3",
+          "text": "Route exhaustion to DLQ",
+          "verdict": "MISSING",
+          "requirement_kind": "code_static",
+          "acceptable_citation_paths": ["README.md"],
+          "expected_guard_type": "static_repository"
+        }
+      ]
+    },
+    {
+      "id": "I04",
+      "title": "Recommendations cascade into catalog",
+      "incident_path": "incidents/I04.md",
+      "repository_path": "repositories/I04",
+      "actions": [
+        {
+          "id": "A04.1",
+          "text": "Add a circuit breaker",
+          "verdict": "MISSING",
+          "requirement_kind": "code_static",
+          "acceptable_citation_paths": ["catalog.py", "README.md"],
+          "expected_guard_type": "static_repository"
+        },
+        {
+          "id": "A04.2",
+          "text": "Serve a safe fallback while open",
+          "verdict": "PARTIAL",
+          "requirement_kind": "code_static",
+          "gold_evidence_paths": ["catalog.py"],
+          "acceptable_citation_paths": ["catalog.py"],
+          "expected_guard_type": "test_protection"
+        },
+        {
+          "id": "A04.3",
+          "text": "Test half-open recovery",
+          "verdict": "VERIFIED",
+          "requirement_kind": "test_protection",
+          "gold_evidence_paths": ["tests/test_catalog.py"],
+          "acceptable_citation_paths": ["tests/test_catalog.py"]
+        }
+      ]
+    },
+    {
+      "id": "I06",
+      "title": "Worker queue grows without bounds",
+      "incident_path": "incidents/I06.md",
+      "repository_path": "repositories/I06",
+      "actions": [
+        {
+          "id": "A06.1",
+          "text": "Set worker capacity to 500",
+          "verdict": "PARTIAL",
+          "requirement_kind": "numeric_configuration",
+          "gold_evidence_paths": ["worker.py"],
+          "acceptable_citation_paths": ["worker.py"],
+          "expected_guard_type": "test_protection"
+        },
+        {
+          "id": "A06.2",
+          "text": "Reject work at queue capacity",
+          "verdict": "MISSING",
+          "requirement_kind": "code_static",
+          "acceptable_citation_paths": ["worker.py", "README.md"],
+          "expected_guard_type": "static_repository"
+        },
+        {
+          "id": "A06.3",
+          "text": "Add queue-depth regression test",
+          "verdict": "VERIFIED",
+          "requirement_kind": "test_protection",
+          "gold_evidence_paths": ["tests/test_worker.py"],
+          "acceptable_citation_paths": ["tests/test_worker.py"]
+        }
+      ]
+    },
+    {
+      "id": "I11",
+      "title": "Parser kill switch bypass",
+      "incident_path": "incidents/I11.md",
+      "repository_path": "repositories/I11",
+      "actions": [
+        {
+          "id": "A11.1",
+          "text": "Gate all parser entry points",
+          "verdict": "VERIFIED",
+          "requirement_kind": "code_static",
+          "gold_evidence_paths": ["parser.py", "tests/test_parser.py"],
+          "acceptable_citation_paths": ["parser.py", "settings.yaml", "tests/test_parser.py"]
+        },
+        {
+          "id": "A11.2",
+          "text": "Set parser concurrency feature flag default to 0",
+          "verdict": "MISSING",
+          "requirement_kind": "numeric_configuration",
+          "gold_evidence_paths": ["settings.yaml"],
+          "acceptable_citation_paths": ["settings.yaml"],
+          "expected_guard_type": "configuration"
+        },
+        {
+          "id": "A11.3",
+          "text": "Prove operator tested the kill switch",
+          "verdict": "UNVERIFIABLE",
+          "requirement_kind": "runtime_context"
+        }
+      ]
+    }
+  ]
+}
