@@ -1,6 +1,6 @@
 # RemedyGraph Implementation Status
 
-**Last updated:** 2026-09-11
+**Last updated:** 2026-09-13
 **Current phase:** Phase 5 — RemedyBench evaluation and demo packaging
 **Overall status:** Five-day MVP implementation complete; ready for release review
 
@@ -106,6 +106,9 @@
   set; unsupported/document-only VERIFIED rates are zero and average model calls are 1.0.
 - Network-free GitHub Actions, an updated quickstart, local-first deployment guidance, and a real
   dashboard capture complete the reproducible portfolio package.
+- Release review restored the tracked RemedyBench JSON artifact referenced by the README, aligned
+  the published latency figures to that artifact, and added a regression check for artifact
+  presence, benchmark hash, aggregate metrics, and per-action predictions.
 
 ## Files Changed
 

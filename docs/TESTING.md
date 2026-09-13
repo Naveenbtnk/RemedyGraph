@@ -199,7 +199,7 @@ Backend type check:        mypy backend
 Frontend lint:             npm run lint --prefix frontend
 Frontend tests:            npm test --prefix frontend
 Frontend build:            npm run build --prefix frontend
-Evaluation smoke:          python -m evals.run --suite smoke
+Evaluation smoke:          python -m backend.app.evaluation.cli --benchmark remedybench --check
 ```
 
 Update this section when package scripts are created. Do not retain commands that no longer work.

@@ -78,7 +78,7 @@ four verdict classes. Published numbers in this README come only from
 | Guard runnable rate | 1.000 |
 | Guard seeded-bad-state detection | 1.000 |
 | Average model calls per incident | 1.000 |
-| P50 / P95 duration | 219.259 ms / 256.944 ms |
+| P50 / P95 duration | 301.418 ms / 346.385 ms |
 
 These are measured results for the bundled five-case deterministic smoke set, not evidence of
 generalization to arbitrary production repositories. The JSON artifact records every prediction,

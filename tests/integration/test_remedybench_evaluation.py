@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from backend.app.evaluation.contracts import EvaluationReport
 from backend.app.evaluation.runner import RemedyBenchEvaluator
 
 
@@ -20,6 +21,18 @@ def test_remedybench_smoke_is_reproducible_and_conservative() -> None:
     assert report.metrics.guard_runnable_rate == 1.0
     assert report.metrics.guard_detection_rate == 1.0
     assert report.metrics.average_model_calls_per_incident == 1.0
+
+    saved = EvaluationReport.model_validate_json(
+        (root / "evals/results/remedybench-smoke.json").read_text(encoding="utf-8")
+    )
+    assert saved.metadata.worktree_dirty is False
+    assert saved.metadata.benchmark_sha256 == report.metadata.benchmark_sha256
+    assert saved.metrics.model_dump(exclude={"p50_duration_ms", "p95_duration_ms"}) == (
+        report.metrics.model_dump(exclude={"p50_duration_ms", "p95_duration_ms"})
+    )
+    assert [case.model_dump(exclude={"duration_ms"}) for case in saved.cases] == [
+        case.model_dump(exclude={"duration_ms"}) for case in report.cases
+    ]
 
 
 def test_remedybench_contains_all_four_verdict_classes() -> None:
