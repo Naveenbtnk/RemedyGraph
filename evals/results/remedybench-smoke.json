@@ -1,18 +1,18 @@
 {
   "schema_version": 1,
   "metadata": {
-    "evaluation_id": "evaluation_2e2af57f0a86d19ff3ae",
-    "repository_commit": "17d71bb5253a0111c3ba2a10261f143f1d3a9649",
+    "evaluation_id": "evaluation_3ad19b8cad562d9e15fa",
+    "repository_commit": "bb276c73998b795b62c77ab506a92ba86918bac4",
     "worktree_dirty": false,
     "benchmark_version": "0.1.0-smoke",
-    "benchmark_sha256": "b039c845758f1d09c45e3f4d92e0e3333edfc10316557717c8f278e248a357e8",
+    "benchmark_sha256": "7976ae3d5c3d19276f33ed209425d70bc95a2e5ae2557d731511efbf8cb6ad7e",
     "provider": "mock",
     "model": "deterministic-mock-v1",
     "prompt_version": "extract-actions-v1",
     "random_seed": 0,
     "retrieval_top_k": 5,
-    "started_at": "2026-09-13T01:27:43.800666Z",
-    "completed_at": "2026-09-13T01:27:45.459224Z"
+    "started_at": "2026-09-13T02:14:15.419243Z",
+    "completed_at": "2026-09-13T02:14:16.472223Z"
   },
   "metrics": {
     "cases": 5,
@@ -39,14 +39,14 @@
     "guard_runnable_rate": 1.0,
     "guard_detection_rate": 1.0,
     "average_model_calls_per_incident": 1.0,
-    "p50_duration_ms": 301.418,
-    "p95_duration_ms": 346.385
+    "p50_duration_ms": 213.328,
+    "p95_duration_ms": 227.561
   },
   "cases": [
     {
       "case_id": "I02",
       "title": "Checkout hangs on payments",
-      "duration_ms": 346.385,
+      "duration_ms": 227.561,
       "model_calls": 1,
       "extracted_actions": [
         "Set payment timeout to 5 seconds",
@@ -125,7 +125,7 @@
     {
       "case_id": "I03",
       "title": "Notification retry storm",
-      "duration_ms": 310.457,
+      "duration_ms": 219.884,
       "model_calls": 1,
       "extracted_actions": [
         "Bound retries to 3",
@@ -207,7 +207,7 @@
     {
       "case_id": "I04",
       "title": "Recommendations cascade into catalog",
-      "duration_ms": 282.334,
+      "duration_ms": 213.328,
       "model_calls": 1,
       "extracted_actions": [
         "Add a circuit breaker",
@@ -286,7 +286,7 @@
     {
       "case_id": "I06",
       "title": "Worker queue grows without bounds",
-      "duration_ms": 301.418,
+      "duration_ms": 208.663,
       "model_calls": 1,
       "extracted_actions": [
         "Set worker capacity to 500",
@@ -371,7 +371,7 @@
     {
       "case_id": "I11",
       "title": "Parser kill switch bypass",
-      "duration_ms": 203.411,
+      "duration_ms": 129.216,
       "model_calls": 1,
       "extracted_actions": [
         "Gate all parser entry points",

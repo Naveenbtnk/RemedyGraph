@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-13
 **Current phase:** Phase 5 — RemedyBench evaluation and demo packaging
-**Overall status:** Five-day MVP locally integrated on `main`; remote publication pending approval
+**Overall status:** Five-day MVP published; CI portability correction under verification
 
 ## Completed
 
@@ -111,6 +111,9 @@
   presence, benchmark hash, aggregate metrics, and per-action predictions.
 - Post-merge verification exposed CRLF/LF differences between Windows worktrees; benchmark hashing
   now canonicalizes line endings, with a cross-checkout regression test.
+- GitHub CI exposed a further Windows/Linux filename-order difference. The versioned benchmark hash
+  now sorts case-sensitive relative POSIX paths, and the saved result was regenerated from a clean
+  commit with the portable hash.
 
 ## Files Changed
 
@@ -175,9 +178,9 @@
 
 ## Next Task
 
-Obtain explicit approval before pushing the locally integrated `main` branch. Future work can expand
-RemedyBench to 15 incidents and add persisted evaluation APIs without weakening existing verdict,
-approval, path, budget, or execution constraints.
+Confirm the corrected GitHub CI run is green, then perform a final local demo and consider a release
+tag. Future work can expand RemedyBench to 15 incidents and add persisted evaluation APIs without
+weakening existing verdict, approval, path, budget, or execution constraints.
 
 ## Current Agent Allocation
 
