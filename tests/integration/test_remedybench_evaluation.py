@@ -56,6 +56,7 @@ def test_benchmark_hash_is_independent_of_checkout_line_endings(tmp_path: Path) 
         if path.is_file():
             path.write_bytes(path.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
 
-    assert RemedyBenchEvaluator(benchmark)._benchmark_hash() == (
-        RemedyBenchEvaluator(copied)._benchmark_hash()
-    )
+    benchmark_hash = RemedyBenchEvaluator(benchmark)._benchmark_hash()
+    assert benchmark_hash == RemedyBenchEvaluator(copied)._benchmark_hash()
+    # Frozen v0.1.0 fixtures must hash identically on Windows and Linux.
+    assert benchmark_hash == "7976ae3d5c3d19276f33ed209425d70bc95a2e5ae2557d731511efbf8cb6ad7e"

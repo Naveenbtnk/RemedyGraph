@@ -305,7 +305,10 @@ class RemedyBenchEvaluator:
 
     def _benchmark_hash(self) -> str:
         digest = hashlib.sha256()
-        for path in sorted(item for item in self.benchmark_root.rglob("*") if item.is_file()):
+        paths = (item for item in self.benchmark_root.rglob("*") if item.is_file())
+        for path in sorted(
+            paths, key=lambda item: item.relative_to(self.benchmark_root).as_posix()
+        ):
             relative = path.relative_to(self.benchmark_root).as_posix()
             digest.update(relative.encode("utf-8"))
             digest.update(b"\0")
