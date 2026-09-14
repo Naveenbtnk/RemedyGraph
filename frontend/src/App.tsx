@@ -1,154 +1,29 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
-import { canExecuteGuard, formatStatus } from "./ui";
-import type { GuardStatus } from "./ui";
+import { requestJson } from "./api/client";
+import type {
+  ActionVerdict,
+  Evidence,
+  EvidenceGraph,
+  Guard,
+  GuardExecution,
+  RunSummary,
+} from "./api/types";
+import ActionCard from "./components/ActionCard";
+import GuardCard from "./components/GuardCard";
+import Panel from "./components/Panel";
+import { formatStatus } from "./lib/status";
+import type { PendingAction } from "./lib/status";
 
-type Verdict = "VERIFIED" | "PARTIAL" | "MISSING" | "UNVERIFIABLE";
-type PendingAction = "audit" | "preview" | "decision" | "execution" | null;
+const DEFAULT_INCIDENT = `# Recommendations cascade into catalog
 
-interface Budget {
-  model_calls_used: number;
-  model_calls_limit: number;
-  investigation_rounds: Record<string, number>;
-}
-
-interface RunSummary {
-  id: string;
-  status: string;
-  total_actions: number;
-  completed_actions: number;
-  verdict_counts: Partial<Record<Verdict, number>>;
-  assessed_protection_coverage: number;
-  budget: Budget;
-  error?: string | null;
-}
-
-interface Citation {
-  evidence_id: string;
-  source_path?: string | null;
-  line_start?: number | null;
-  line_end?: number | null;
-}
-
-interface ActionVerdict {
-  id: string;
-  action_id: string;
-  verdict: Verdict;
-  rationale: string;
-  citations: Citation[];
-  missing_proofs: string[];
-}
-
-interface Evidence {
-  id: string;
-  action_id: string;
-  kind: string;
-  role: string;
-  source_path?: string | null;
-  line_start?: number | null;
-  excerpt?: string | null;
-}
-
-interface GraphNode {
-  id: string;
-  node_type: string;
-  label: string;
-}
-
-interface Graph {
-  nodes: GraphNode[];
-  edges: unknown[];
-}
-
-interface GuardExecution {
-  id: string;
-  status: string;
-  exit_code?: number | null;
-  stdout: string;
-  stderr: string;
-  duration_ms: number;
-}
-
-interface Guard {
-  id: string;
-  name: string;
-  guard_type: string;
-  intent: string;
-  assertions: string[];
-  target_path: string;
-  preview: string;
-  preview_sha256: string;
-  status: GuardStatus;
-}
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
-const REQUEST_TIMEOUT_MS = 120_000;
-const MAX_ERROR_LENGTH = 500;
-const DEFAULT_INCIDENT = `# Payment retry storm
-
-Affected services: payments
+Catalog called recommendations synchronously and lacked complete failure isolation.
 
 ## Corrective actions
-- Bound retries to 3.
+
 - Add a circuit breaker.
-- Add a regression test for retry exhaustion.
+- Serve a safe fallback while open.
+- Test half-open recovery.
 `;
-
-async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  try {
-    const response = await fetch(`${API_BASE}${path}`, {
-      ...init,
-      credentials: "omit",
-      headers: { "Content-Type": "application/json", ...init?.headers },
-      referrerPolicy: "no-referrer",
-      signal: init?.signal ?? controller.signal,
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const detail =
-        typeof payload.detail === "string"
-          ? payload.detail.slice(0, MAX_ERROR_LENGTH)
-          : `Request failed (${response.status})`;
-      throw new Error(detail);
-    }
-    return payload as T;
-  } catch (reason) {
-    if (reason instanceof DOMException && reason.name === "AbortError") {
-      throw new Error("The local service did not respond within two minutes.");
-    }
-    throw reason;
-  } finally {
-    window.clearTimeout(timeout);
-  }
-}
-
-function VerdictBadge({ verdict }: { verdict: Verdict }) {
-  return <span className={`verdict verdict-${verdict.toLowerCase()}`}>{verdict}</span>;
-}
-
-function Panel({
-  title,
-  kicker,
-  children,
-  className = "",
-}: {
-  title: string;
-  kicker?: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <section className={`panel ${className}`}>
-      <div className="panel-heading">
-        {kicker && <p className="panel-kicker">{kicker}</p>}
-        <h2>{title}</h2>
-      </div>
-      {children}
-    </section>
-  );
-}
 
 export default function App() {
   const [repositoryPath, setRepositoryPath] = useState("");
@@ -156,7 +31,7 @@ export default function App() {
   const [run, setRun] = useState<RunSummary | null>(null);
   const [actions, setActions] = useState<ActionVerdict[]>([]);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
-  const [graph, setGraph] = useState<Graph>({ nodes: [], edges: [] });
+  const [graph, setGraph] = useState<EvidenceGraph>({ nodes: [], edges: [] });
   const [guards, setGuards] = useState<Guard[]>([]);
   const [executions, setExecutions] = useState<Record<string, GuardExecution>>({});
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
@@ -185,26 +60,30 @@ export default function App() {
     event.preventDefault();
     setPendingAction("audit");
     setError(null);
+    setRun(null);
+    setActions([]);
+    setEvidence([]);
+    setGraph({ nodes: [], edges: [] });
     setGuards([]);
     setExecutions({});
     try {
-      const project = await api<{ id: string }>("/projects", {
+      const project = await requestJson<{ id: string }>("/projects", {
         method: "POST",
         body: JSON.stringify({ repository_path: repositoryPath }),
       });
-      const incident = await api<{ id: string }>("/incidents", {
+      const incident = await requestJson<{ id: string }>("/incidents", {
         method: "POST",
         body: JSON.stringify({ project_id: project.id, source_text: incidentText }),
       });
-      const created = await api<RunSummary>("/runs", {
+      const created = await requestJson<RunSummary>("/runs", {
         method: "POST",
         body: JSON.stringify({ project_id: project.id, incident_id: incident.id }),
       });
       setRun(created);
       const [actionData, evidenceData, graphData] = await Promise.all([
-        api<{ verdicts: ActionVerdict[] }>(`/runs/${created.id}/actions`),
-        api<{ evidence: Evidence[] }>(`/runs/${created.id}/evidence`),
-        api<Graph>(`/runs/${created.id}/graph`),
+        requestJson<{ verdicts: ActionVerdict[] }>(`/runs/${created.id}/actions`),
+        requestJson<{ evidence: Evidence[] }>(`/runs/${created.id}/evidence`),
+        requestJson<EvidenceGraph>(`/runs/${created.id}/graph`),
       ]);
       setActions(actionData.verdicts);
       setEvidence(evidenceData.evidence);
@@ -221,7 +100,7 @@ export default function App() {
     setPendingAction("preview");
     setError(null);
     try {
-      const result = await api<{ guards: Guard[] }>(`/runs/${run.id}/guards/preview`, {
+      const result = await requestJson<{ guards: Guard[] }>(`/runs/${run.id}/guards/preview`, {
         method: "POST",
       });
       setGuards(result.guards);
@@ -237,7 +116,7 @@ export default function App() {
     setPendingAction("decision");
     setError(null);
     try {
-      const updated = await api<Guard>(`/runs/${run.id}/guards/${guard.id}/approve`, {
+      const updated = await requestJson<Guard>(`/runs/${run.id}/guards/${guard.id}/approve`, {
         method: "POST",
         body: JSON.stringify({ approved, preview_sha256: guard.preview_sha256 }),
       });
@@ -254,11 +133,11 @@ export default function App() {
     setPendingAction("execution");
     setError(null);
     try {
-      const result = await api<GuardExecution>(`/runs/${run.id}/guards/${guard.id}/execute`, {
+      const result = await requestJson<GuardExecution>(`/runs/${run.id}/guards/${guard.id}/execute`, {
         method: "POST",
       });
       setExecutions((current) => ({ ...current, [guard.id]: result }));
-      const listed = await api<{ guards: Guard[] }>(`/runs/${run.id}/guards`);
+      const listed = await requestJson<{ guards: Guard[] }>(`/runs/${run.id}/guards`);
       setGuards(listed.guards);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Execution failed");
@@ -426,52 +305,9 @@ export default function App() {
             </div>
           ) : (
             <div className="action-list">
-              {actions.map((action, index) => {
-                const records = evidence.filter((item) => item.action_id === action.action_id);
-                return (
-                  <details className="action-card" key={action.id}>
-                    <summary>
-                      <span className="action-index">A{String(index + 1).padStart(2, "0")}</span>
-                      <VerdictBadge verdict={action.verdict} />
-                      <span className="action-rationale">{action.rationale}</span>
-                      <span className="count">{records.length} evidence</span>
-                      <span className="summary-toggle" aria-hidden="true">+</span>
-                    </summary>
-                    <div className="action-detail">
-                      {action.missing_proofs.length > 0 && (
-                        <div className="missing-proof">
-                          <h3>Missing proof</h3>
-                          <ul>
-                            {action.missing_proofs.map((proof) => (
-                              <li key={proof}>{proof}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      <h3>Located evidence</h3>
-                      {records.length === 0 ? (
-                        <p className="muted">No repository evidence located.</p>
-                      ) : (
-                        <div className="evidence-grid">
-                          {records.map((record) => (
-                            <article className="evidence" key={record.id}>
-                              <div>
-                                <span className="chip">{record.kind}</span>
-                                <span className="chip secondary">{record.role}</span>
-                              </div>
-                              <p className="code path">
-                                {record.source_path ?? "No source path"}
-                                {record.line_start ? `:${record.line_start}` : ""}
-                              </p>
-                              {record.excerpt && <pre>{record.excerpt}</pre>}
-                            </article>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </details>
-                );
-              })}
+              {actions.map((action, index) => (
+                <ActionCard action={action} evidence={evidence} index={index} key={action.id} />
+              ))}
             </div>
           )}
         </Panel>
@@ -483,7 +319,7 @@ export default function App() {
             </p>
             <p className="muted">An accessible inventory of the audit’s evidence relationships.</p>
             <ul className="graph-list">
-              {graph.nodes.slice(0, 8).map((node) => (
+              {graph.nodes.map((node) => (
                 <li key={node.id}>
                   <span className="graph-node-dot" aria-hidden="true" />
                   <span className="chip">{node.node_type}</span>
@@ -511,73 +347,21 @@ export default function App() {
         </div>
 
         {guards.map((guard) => (
-          <Panel title={guard.name} kicker="Guard preview" className="guard-panel" key={guard.id}>
-            <div className="guard-meta">
-              <span className="chip">{guard.guard_type}</span>
-              <span className={`guard-status status-${guard.status.toLowerCase()}`}>
-                {guard.status}
-              </span>
-            </div>
-            <p className="guard-lead">{guard.intent}</p>
-            <p className="code path">{guard.target_path}</p>
-            <h3>Assertions</h3>
-            <ul>
-              {guard.assertions.map((assertion) => (
-                <li key={assertion}>{assertion}</li>
-              ))}
-            </ul>
-            <pre className="preview">
-              <code>{guard.preview}</code>
-            </pre>
-            <p className="safety">
-              <strong>Safety boundary.</strong> The application selects a fixed isolated Python
-              command; repository promotion remains manual.
-            </p>
-            <div className="button-row">
-              <button
-                type="button"
-                onClick={() => decideGuard(guard, false)}
-                disabled={guard.status !== "PREVIEWED" || busy}
-              >
-                {pendingAction === "decision" ? "Saving decision…" : "Reject"}
-              </button>
-              <button
-                className="primary"
-                type="button"
-                onClick={() => decideGuard(guard, true)}
-                disabled={guard.status !== "PREVIEWED" || busy}
-              >
-                {pendingAction === "decision" ? "Saving decision…" : "Approve and write"}
-              </button>
-              <button
-                type="button"
-                onClick={() => executeGuard(guard)}
-                disabled={!canExecuteGuard(guard.status) || busy}
-              >
-                {pendingAction === "execution" ? "Executing guard…" : "Execute approved guard"}
-              </button>
-            </div>
-            {executions[guard.id] && (
-              <div className="execution">
-                <h3>Execution: {executions[guard.id].status}</h3>
-                <p className="muted">
-                  Exit {executions[guard.id].exit_code ?? "—"} ·{" "}
-                  {executions[guard.id].duration_ms.toFixed(0)} ms
-                </p>
-                <pre>
-                  {executions[guard.id].stdout ||
-                    executions[guard.id].stderr ||
-                    "No output"}
-                </pre>
-              </div>
-            )}
-          </Panel>
+          <GuardCard
+            guard={guard}
+            execution={executions[guard.id]}
+            busy={busy}
+            pendingAction={pendingAction}
+            onDecision={decideGuard}
+            onExecute={executeGuard}
+            key={guard.id}
+          />
         ))}
 
         <footer>
           <span>RemedyGraph</span>
           <span>Evidence-backed reliability auditing</span>
-          <span>Local MVP · 2026</span>
+          <span>Local-first · 2026</span>
         </footer>
       </main>
     </div>

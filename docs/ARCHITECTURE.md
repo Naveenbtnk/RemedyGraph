@@ -1,6 +1,6 @@
 # RemedyGraph Technical Architecture
 
-**Status:** Approved MVP architecture
+**Status:** Implemented local architecture
 **Style:** Local-first modular monolith
 
 ## 1. Architectural Drivers
@@ -10,7 +10,7 @@
 - Model usage must be bounded and provider-independent.
 - Repository investigation must be read-only by default.
 - Generated code must remain behind a human approval boundary.
-- The MVP must be buildable and demonstrable in five days.
+- The system must be reproducible and demonstrable without paid infrastructure.
 
 ## 2. System Context
 
@@ -42,12 +42,12 @@ FastAPI modular monolith
 - Render action verdicts and evidence.
 - Visualize the evidence graph.
 - Preview guard diffs and capture explicit approval.
-- Display measured evaluation results.
+- Leave evaluation reporting to the CLI and saved JSON artifact.
 
 ### API Layer
 
 - Validate requests and serialize responses.
-- Enforce project/run/guard authorization state for the local user.
+- Enforce project, run, and guard relationship integrity for local use.
 - Delegate behavior to services; contain no verification logic.
 
 ### Audit Service
@@ -104,10 +104,10 @@ START
  -> END
 ```
 
-Incident action extraction occurs before audit creation. Day 4 will add guard preview, approval,
-isolated writing/execution, and dashboard integration after this completed Day 3 boundary.
+Incident action extraction occurs before audit creation. Guard preview, approval, and bounded
+execution are separate API operations outside the read-only audit graph.
 
-Implemented Day 3 bounds:
+Runtime bounds:
 
 - Maximum six attempted model calls across the stable incident lifecycle. Corrective-action
   extraction and any audit-run provider gateway share the same persisted incident counter; a
@@ -196,8 +196,9 @@ Every chunk stores path, line range, document type, language, symbol, content ha
 5. Top eight chunks form the model context.
 
 The semantic interface has a deterministic fake encoder for tests and an optional
-sentence-transformers adapter. The adapter defaults to local-files-only model loading. The Day 2
-vector index is process-local; SQLite FTS5 stores the lexical corpus and full chunk metadata.
+sentence-transformers adapter. The adapter defaults to local-files-only model loading. The
+semantic vector index is process-local; SQLite FTS5 stores the lexical corpus and full chunk
+metadata.
 
 Each retrieval records the redacted query, returned chunk IDs, lexical/semantic/final ranks and
 scores, and elapsed time.
@@ -252,10 +253,9 @@ Identifiers must be stable within an audit and opaque to the frontend.
 | `POST` | `/api/v1/runs/{run_id}/guards/preview` | Create guard previews |
 | `POST` | `/api/v1/runs/{run_id}/guards/{guard_id}/approve` | Record approval |
 | `POST` | `/api/v1/runs/{run_id}/guards/{guard_id}/execute` | Execute approved guard |
-| `POST` | `/api/v1/evaluations` | Planned post-MVP API; CLI evaluator is implemented |
-| `GET` | `/api/v1/evaluations/{evaluation_id}` | Planned post-MVP API; saved JSON is implemented |
 
-OpenAPI output becomes the frontend/backend contract once the API skeleton exists.
+OpenAPI describes the implemented HTTP contract. Evaluation currently uses the CLI and a curated
+JSON report; there are no evaluation HTTP endpoints.
 
 ## 10. Storage
 
@@ -336,19 +336,21 @@ Each run records:
 - Deterministic check results.
 - Guard approval and execution events.
 
-## 15. Planned Repository Layout
+## 15. Repository Layout
 
 ```text
 backend/
-  api/ agents/ graph/ llm/ rag/ services/ tools/
+  app/
+    audit/ evaluation/ guards/ llm/ rag/ tools/
+    main.py models.py schemas.py services.py settings.py storage.py
 frontend/
-  src/components/ src/pages/ src/lib/
-contracts/
+  src/api/ src/components/ src/lib/
 remedybench/
-  incidents/ repositories/ ground_truth/
+  incidents/ repositories/ manifest.json
 evals/
+  results/
 tests/
-  unit/ integration/ fixtures/
+  api/ unit/ integration/ fixtures/
 docs/
 coordination/
 .github/workflows/
@@ -356,4 +358,6 @@ coordination/
 
 ## 16. Deployment
 
-The default deployment is local development. Docker Compose is optional and should not block the native setup. The portfolio demo may deploy only the frontend/API if repository-analysis permissions can be constrained safely; otherwise provide a recorded demo and local quickstart.
+The supported deployment is local and single-user. The API must remain bound to loopback unless
+authentication, tenant isolation, and an operating-system execution sandbox are added. Static
+frontend hosting alone cannot perform repository audits; see `docs/DEPLOYMENT.md`.

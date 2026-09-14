@@ -1,6 +1,6 @@
 # RemedyGraph Testing and Evaluation Strategy
 
-**Status:** Approved MVP strategy
+**Status:** Active local-release strategy
 
 ## 1. Quality Goal
 
@@ -78,27 +78,21 @@ Tests combining real internal components with a deterministic model stub:
 
 ### Frontend Tests
 
-- Action table renders all verdicts and missing-proof states.
-- Evidence drawer shows locations and deterministic results.
-- Coverage label uses approved wording.
-- Guard execution controls remain disabled before approval.
-- Loading, failed, empty, and partial-complete states.
-- Keyboard access for rows, drawers, dialogs, and graph alternatives.
-- Production build succeeds.
+- Audit setup, summary, and guard controls render with accessible labels.
+- An action card shows missing proof beside located evidence.
+- An unapproved guard preview cannot execute.
+- Status formatting and guard execution eligibility are deterministic.
+- The production build succeeds.
 
-### End-to-End Smoke Test
+### Manual Demo Smoke Test
 
-Using a bundled deterministic fixture:
+Using the bundled `I04` incident and repository:
 
-1. Register demo repository.
-2. Upload/select `INC-042`.
-3. Start audit.
-4. Wait for completion.
-5. Assert expected verdicts.
-6. Open contradictory alert evidence.
-7. Generate a guard preview.
-8. Approve and execute in the isolated runner.
-9. Assert the seeded bad state is detected.
+1. Register the repository and paste the incident text.
+2. Start the audit and confirm the expected missing, partial, and verified verdicts.
+3. Expand the circuit-breaker and fallback actions to inspect their evidence gaps.
+4. Generate a guard preview, approve it, and execute it through the bounded runner.
+5. Compare the displayed result with the saved RemedyBench report.
 
 ## 3. RemedyBench
 
@@ -206,50 +200,18 @@ Evaluation smoke:          python -m backend.app.evaluation.cli --benchmark reme
 
 Update this section when package scripts are created. Do not retain commands that no longer work.
 
-## 9. Phase Gates
+## 9. Release Gate
 
-### Day 1 Gate
-
-- Schemas and extraction fixtures pass.
-- API health and incident endpoints respond.
-- Mock provider completes without network access.
-
-### Day 2 Gate
-
-- Indexer respects file/path restrictions.
-- Gold evidence for sample incident appears in top five retrieval.
-- Tool unit tests pass.
-- Default tests make no network calls and require no document converter or embedding model download.
-
-### Day 3 Gate
-
-- End-to-end audit produces expected verdict classes.
-- Deterministic failure cannot become verified.
-- Unused declarations plus trivial or unrelated tests cannot become verified.
-- Every model attempt is charged before invocation; the sixth call/third investigation round are
-  allowed and the seventh/fourth are rejected without retry.
-- Corrective-action extraction and audit gateways share the stable incident's six-call budget;
-  failed extraction and repeated incident creation remain charged. Independent SQLite connections
-  cannot both consume the final slot.
-- LangGraph exposes separate load, compile, retrieve, investigate/check, verdict, graph, and
-  persistence/completion nodes.
-- Audit snapshots replace stale children transactionally and reject cross-scope records.
-- Versioned SQLite reopen and evidence-graph record/relationship integrity pass.
-
-### Day 4 Gate
-
-- Guard approval boundary is enforced.
-- Seeded bad and good state guard tests pass.
-- Guard previews, approvals, execution summaries, and schema migration persist and reload.
-- Unsafe or modified artifacts cannot execute; timeout and output limits are covered.
-- Dashboard production build succeeds.
-
-### Day 5 Gate
-
-- Full clean test run passes.
-- Benchmark results are saved and reproducible.
-- README claims match artifacts.
-- No secrets or runtime databases are tracked.
+- Backend lint, formatting, type checks, compilation, and the complete pytest suite pass.
+- Frontend type/lint check, component tests, and production build pass.
+- The saved RemedyBench artifact matches a fresh deterministic run across Windows and Linux
+  checkout conventions.
+- A failed deterministic check cannot become `VERIFIED`; trivial or unrelated tests do not count
+  as regression protection.
+- Incident model-attempt and per-invariant investigation budgets remain enforced across concurrent
+  SQLite connections.
+- Audit snapshots, evidence graphs, and guard approvals retain their cross-record integrity.
+- `git diff --check`, secret review, and a tracked runtime-database scan pass.
 
 ## 10. Definition of Tested
 

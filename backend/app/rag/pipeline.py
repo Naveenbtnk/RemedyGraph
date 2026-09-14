@@ -8,7 +8,7 @@ from backend.app.rag.ingestion import RepositoryIngestor
 
 
 class RepositoryIndexer:
-    """Build the Day 2 lexical and vector indexes from one safe ingestion pass."""
+    """Build lexical and vector indexes from one safe ingestion pass."""
 
     def __init__(
         self,

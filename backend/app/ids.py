@@ -1,4 +1,4 @@
-"""Stable opaque identifiers for the Day 1 domain records."""
+"""Stable opaque identifiers for persisted domain records."""
 
 import hashlib
 

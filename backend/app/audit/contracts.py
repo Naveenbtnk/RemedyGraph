@@ -1,4 +1,4 @@
-"""Typed contracts for the Day 3 audit, verification, and evidence graph."""
+"""Typed contracts for audits, verification, and evidence graphs."""
 
 from __future__ import annotations
 

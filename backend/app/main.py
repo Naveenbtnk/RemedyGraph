@@ -1,4 +1,4 @@
-"""FastAPI application factory and Day 1 HTTP surface."""
+"""FastAPI application factory and HTTP routes."""
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager

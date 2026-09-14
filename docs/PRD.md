@@ -1,8 +1,8 @@
 # RemedyGraph Product Requirements Document
 
-**Status:** Approved for MVP implementation
+**Status:** Local release scope
 **Version:** 1.0
-**Target build window:** Five focused development days
+**Scope:** Local, single-user release
 
 ## 1. Product Summary
 
@@ -33,7 +33,6 @@ Existing document chatbots can summarize the postmortem, and coding agents can g
 ### Secondary
 
 - Security and platform engineers auditing reliability controls.
-- Interviewers and recruiters evaluating the technical portfolio project.
 
 ## 4. Product Promise
 
@@ -69,15 +68,15 @@ Given a postmortem and a repository, RemedyGraph will answer:
 ## 7. Core User Journey
 
 1. User selects a local repository inside an allowed workspace.
-2. User uploads or selects a Markdown/plain-text postmortem.
-3. RemedyGraph extracts corrective actions and displays them for audit.
+2. User pastes a Markdown/plain-text postmortem into the dashboard.
+3. RemedyGraph extracts corrective actions as part of the audit.
 4. RemedyGraph compiles invariants and indexes relevant repository content.
 5. The investigator gathers evidence and invokes deterministic tools.
 6. The verifier assigns a verdict with evidence citations and missing proofs.
 7. The dashboard displays assessed protection coverage and an evidence graph.
 8. For partial or missing actions, the user previews suggested CI guards.
-9. The user explicitly approves a selected guard for isolated execution.
-10. RemedyGraph stores the execution result in the audit.
+9. The user explicitly approves the exact guard preview before it is written.
+10. The user separately executes the approved guard and inspects the stored result.
 
 ## 8. Functional Requirements
 
@@ -99,8 +98,8 @@ Given a postmortem and a repository, RemedyGraph will answer:
 
 - Convert each action into one or more atomic invariants.
 - Select a supported check type.
-- Mark ambiguous/manual requirements for manual review.
-- Retrieve policy/runbook context when terms such as “standard” are undefined.
+- Return an explicit unsupported or unavailable requirement when a deterministic check cannot be
+  constructed.
 
 ### FR-4: Repository Indexing
 
@@ -111,7 +110,8 @@ Given a postmortem and a repository, RemedyGraph will answer:
 ### FR-5: Evidence Investigation
 
 - Support hybrid retrieval and exact code/config/test search.
-- Support Python AST analysis, typed configuration parsing, read-only Git history, and allowlisted test execution.
+- Support Python AST analysis, typed configuration parsing, and bounded read-only Git history.
+- Never execute arbitrary commands or the audited repository's test suite during an audit.
 - Limit each action to three investigation rounds by default.
 - Log tool inputs, bounded outputs, durations, and failures.
 
@@ -133,14 +133,15 @@ Given a postmortem and a repository, RemedyGraph will answer:
 ### FR-8: Dashboard
 
 - Display incident summary, run status, assessed protection coverage, and action verdicts.
-- Provide evidence details and graph visualization.
+- Provide evidence details and an accessible evidence-graph inventory.
 - Provide guard preview and execution results.
 - Avoid a chat-first interface.
 
 ### FR-9: Evaluation
 
 - Evaluate action extraction, retrieval, verdicts, and generated guards.
-- Store model, prompt version, configuration, dataset version, and raw metrics.
+- Save model, prompt version, configuration, dataset version, and measured metrics in a
+  reproducible CLI report.
 - Never display placeholder values as measured results.
 
 ## 9. Verdict Definitions
@@ -152,9 +153,9 @@ Given a postmortem and a repository, RemedyGraph will answer:
 | `MISSING` | No credible implementation exists or a core deterministic check fails |
 | `UNVERIFIABLE` | Required runtime/context is unavailable or the action is inherently manual |
 
-## 10. MVP Acceptance Criteria
+## 10. Release Acceptance Criteria
 
-- One command starts the local development stack after dependencies are installed.
+- Documented commands start the API and dashboard locally after dependencies are installed.
 - A bundled incident and demo repository complete an end-to-end audit.
 - At least one action demonstrates each primary verdict: verified, partial, and missing.
 - Every verdict contains evidence or a missing-evidence explanation.
@@ -176,16 +177,18 @@ Targets are goals, not claims. Actual values must come from saved evaluations.
 - Average model calls target: no more than six per incident.
 - Demo incident completion target: under two minutes on a typical development laptop, excluding first-time model download.
 
-## 12. Five-Day Scope
+## 12. Implementation Areas
 
-| Day | Deliverable |
+| Area | Deliverable |
 |---|---|
-| 1 | Backend/frontend skeleton, schemas, provider interface, postmortem extraction |
-| 2 | Safe repository indexing, hybrid retrieval, investigation tools |
-| 3 | Agent workflow, deterministic checks, verdicts, audit persistence |
-| 4 | Guard preview/execution and dashboard vertical slice |
-| 5 | RemedyBench, evaluation, CI, documentation, screenshots, demo |
+| Application foundation | Backend/frontend entry points, schemas, provider interface, postmortem extraction |
+| Repository analysis | Safe indexing, hybrid retrieval, investigation tools |
+| Verification | Bounded workflow, deterministic checks, verdicts, audit persistence |
+| Guard lifecycle | Guard preview, approval, execution, and dashboard workflow |
+| Evaluation and release | RemedyBench, CI, documentation, and reproducible demo |
 
 ## 13. Release Criteria
 
-The MVP is ready to demonstrate when a new user can clone the repository, follow the README, run the bundled sample, inspect evidence-backed verdicts, preview and approve a guard, and reproduce the published evaluation table.
+The local release is ready to demonstrate when a new user can clone the repository, follow the
+README, run the bundled sample, inspect evidence-backed verdicts, preview and approve a guard,
+and reproduce the published evaluation report.

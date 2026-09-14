@@ -1,122 +1,162 @@
 # RemedyGraph
 
-RemedyGraph is an evidence-backed reliability auditor. It turns corrective actions from incident
-postmortems into measurable invariants, investigates the associated repository, applies
-deterministic checks, and reports `VERIFIED`, `PARTIAL`, `MISSING`, or `UNVERIFIABLE` with citations
-and missing-proof explanations.
+RemedyGraph audits whether corrective actions from incident postmortems are implemented and
+protected against regression. It turns each action into a measurable requirement, inspects a local
+repository, runs bounded deterministic checks, and presents a verdict with traceable evidence.
 
-Unlike a document chatbot, RemedyGraph closes the postmortem-to-CI loop:
+![RemedyGraph audit dashboard](docs/images/dashboard.png)
+
+The result is an audit, not a chatbot response:
 
 ```text
-postmortem -> atomic action -> invariant -> repository evidence -> verdict -> approved CI guard
+postmortem action → invariant → repository evidence → check → verdict → approved guard
 ```
 
-![RemedyGraph dashboard](docs/images/dashboard.png)
+## Capabilities
 
-## What the MVP demonstrates
+- Extract atomic corrective actions from Markdown or plain-text postmortems.
+- Index a workspace-bounded local repository with path, size, binary, and secret controls.
+- Verify Python code, configuration, and regression-test structure with deterministic checks.
+- Report `VERIFIED`, `PARTIAL`, `MISSING`, or `UNVERIFIABLE` with citations or explicit proof gaps.
+- Explore an evidence graph and preview CI guards before any write or execution.
+- Reproduce the five-incident synthetic RemedyBench evaluation without model credentials.
 
-- Safe, bounded local repository ingestion with path, secret, binary, size, and symlink controls.
-- Markdown/text ingestion plus optional local PDF, DOCX, and PPTX conversion through MarkItDown.
-- Python-aware chunking, SQLite FTS5/BM25, optional local embeddings, and hybrid retrieval.
-- A seven-stage LangGraph audit with persisted budgets and conservative deterministic verdicts.
-- Evidence graphs and source-located citations that do not treat documentation or Git claims as
-  implementation proof.
-- Application-owned guard previews with SHA-256-bound human approval and isolated execution.
-- A live React dashboard and a reproducible, synthetic RemedyBench smoke evaluation.
+The supported workflow is local and single-user. The default model provider is deterministic and
+network-free; a public, multi-user backend is **not** a supported deployment.
 
-## Quickstart
+## Requirements
 
-Requirements: Python 3.11+, Node.js 22+, and Git.
+- Python 3.11 or newer
+- Node.js 22 or newer and npm
+- Git
 
-```powershell
+## Install
+
+```text
 git clone https://github.com/Naveenbtnk/RemedyGraph.git
 cd RemedyGraph
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+```
+
+Activate the environment with `.\.venv\Scripts\Activate.ps1` in PowerShell or
+`source .venv/bin/activate` in a POSIX shell. Then install the backend and frontend:
+
+```text
 python -m pip install -e ".[dev]"
 npm ci --prefix frontend
 ```
 
-Terminal 1:
+Copy `.env.example` to `.env` if you want to customize server settings. The defaults work when
+commands are run from the repository root. Keep `.env` and any runtime database outside version
+control.
 
-```powershell
-$env:REMEDYGRAPH_WORKSPACE_ROOT = (Get-Location).Path
-uvicorn backend.app.main:app --reload
+## Run a local audit
+
+In one terminal, start the API:
+
+```text
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Terminal 2:
+In another terminal, start the dashboard:
 
-```powershell
+```text
 npm run dev --prefix frontend
 ```
 
-Open `http://localhost:5173`. Use `remedybench/repositories/I04` as the repository and paste the
-contents of `remedybench/incidents/I04.md` to see all three assessable verdicts in one audit.
+Open [http://localhost:5173](http://localhost:5173). Enter
+`remedybench/repositories/I04` as the repository path. The form is prefilled with the matching
+[`I04 postmortem`](remedybench/incidents/I04.md), and you can replace it with your own text. That fixture
+demonstrates missing, partial, and verified actions in one audit. Expand an action to inspect its
+evidence and missing proof. Guard previews are read-only; writing and execution require an explicit
+approval for that exact preview.
 
-No API key is needed: the default provider, embeddings, tests, and benchmark are deterministic and
-network-free.
+The API exposes interactive documentation at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+and a health check at `/health`. Product endpoints are under `/api/v1`.
 
-## Reproduce the benchmark
+## Configuration
 
-```powershell
+Backend settings use the `REMEDYGRAPH_` prefix and may be set in the environment or a root `.env`
+file. See [`.env.example`](.env.example) for all defaults.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `REMEDYGRAPH_WORKSPACE_ROOT` | Current directory | Only repositories inside this resolved root may be audited. Set it as narrowly as possible. |
+| `REMEDYGRAPH_DATABASE_PATH` | `:memory:` | SQLite location. Use an absolute path outside the checkout to persist runs. |
+| `REMEDYGRAPH_FRONTEND_ORIGIN` | `http://localhost:5173` | Exact origin allowed by API CORS. |
+| `REMEDYGRAPH_LLM_PROVIDER` | `mock` | Only the deterministic local provider is currently implemented. |
+| `REMEDYGRAPH_MAX_MODEL_CALLS` | `6` | Maximum attempted provider calls per stable incident, including failed attempts. |
+| `REMEDYGRAPH_MAX_INVESTIGATION_ROUNDS` | `3` | Maximum investigation rounds per invariant. |
+| `REMEDYGRAPH_MAX_FILE_BYTES` | `1000000` | Maximum bytes indexed from one file. |
+| `REMEDYGRAPH_MAX_INDEX_BYTES` | `25000000` | Total index byte limit. |
+| `REMEDYGRAPH_MAX_INDEX_FILES` | `10000` | Maximum number of indexed files. |
+| `REMEDYGRAPH_RETRIEVAL_TOP_K` | `8` | Maximum final retrieval candidates per invariant. |
+| `REMEDYGRAPH_GUARD_TIMEOUT_SECONDS` | `5` | Approved guard execution timeout. |
+| `REMEDYGRAPH_GUARD_OUTPUT_LIMIT` | `16384` | Maximum captured guard output bytes. |
+
+`REMEDYGRAPH_APP_NAME`, `REMEDYGRAPH_APP_VERSION`, and `REMEDYGRAPH_ENVIRONMENT` set service
+metadata. The dashboard uses `VITE_API_BASE_URL` (default
+`http://localhost:8000/api/v1`); copy [`frontend/.env.example`](frontend/.env.example) to
+`frontend/.env.local` to override it. Vite variables are exposed to the browser: **never put
+credentials in them**.
+
+## Evaluation and verification
+
+Run the reproducible benchmark:
+
+```text
 python -m backend.app.evaluation.cli --benchmark remedybench --check
 ```
 
-The smoke set contains five synthetic incidents and 15 atomic actions spanning timeout, retry
-jitter, circuit breaker/fallback, queue bounds, feature flags, hard-negative documentation, and all
-four verdict classes. Published numbers in this README come only from
-[`evals/results/remedybench-smoke.json`](evals/results/remedybench-smoke.json).
+The checked-in [measured report](evals/results/remedybench-smoke.json) contains the benchmark
+version and hash, source commit, per-action predictions, and aggregate metrics. The five-case
+synthetic smoke set is useful for regression testing, not a claim of production generalization.
 
-### Measured smoke results
+Run the same checks used by CI:
 
-| Metric | Measured result |
-|---|---:|
-| Action extraction F1 | 1.000 |
-| Evidence Recall@5 | 1.000 |
-| Citation accuracy | 1.000 |
-| Verification macro-F1 | 1.000 |
-| Guard runnable rate | 1.000 |
-| Guard seeded-bad-state detection | 1.000 |
-| Average model calls per incident | 1.000 |
-| P50 / P95 duration | 213.328 ms / 227.561 ms |
-
-These are measured results for the bundled five-case deterministic smoke set, not evidence of
-generalization to arbitrary production repositories. The JSON artifact records every prediction,
-the implementation commit, benchmark hash, provider, prompt version, configuration, timestamps,
-and per-case durations.
-
-## Verify the project
-
-```powershell
+```text
 ruff check .
 ruff format --check .
 mypy backend
 python -m pytest -q
+python -m compileall -q backend tests
 npm run lint --prefix frontend
 npm test --prefix frontend -- --run
 npm run build --prefix frontend
+python -m backend.app.evaluation.cli --benchmark remedybench --check
 ```
 
-The same network-free checks run in GitHub Actions.
+## Deployment and security
 
-## Safety model
+For a persistent local installation, set `REMEDYGRAPH_WORKSPACE_ROOT` to a dedicated parent of
+the repositories you intend to inspect and `REMEDYGRAPH_DATABASE_PATH` to an absolute location
+outside this checkout. Bind the API to `127.0.0.1`. The frontend can be built with
+`npm run build --prefix frontend`; `npm run preview --prefix frontend` is a local build preview,
+not a production hosting service.
 
-Repository content is untrusted. Paths must stay inside `REMEDYGRAPH_WORKSPACE_ROOT`; likely secrets
-are redacted before display or storage. An audit never writes to the repository. Guard previews are
-generated only from exact application-owned templates, and writing/execution requires an explicit
-approval tied to the preview hash. The runner uses a fixed no-shell Python command, closed stdin, a
-scrubbed environment, timeout, and output caps.
+Do not expose the current API to the public internet. Public hosting would require authentication,
+tenant isolation, a hardened disposable execution worker, storage controls, and additional abuse
+limits. Any static frontend host must also reproduce the security headers described in
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). Audits never write application source; generated guards
+are restricted to an application-owned directory and require preview-bound approval before writing
+or execution.
 
-RemedyGraph provides evidence for engineering review; it does not prove that a system is incident-
-free or replace operational validation.
+## Repository guide
 
-## Documentation
+| Path | Responsibility |
+|---|---|
+| `backend/app/audit/` | Invariant compilation, deterministic checks, verdicts, workflow, and graph. |
+| `backend/app/rag/` | Safe ingestion, indexing, retrieval, and redaction. |
+| `backend/app/guards/` | Guard templates, approval lifecycle, and bounded execution. |
+| `backend/app/evaluation/` | Typed RemedyBench evaluator and CLI. |
+| `frontend/src/api/`, `components/`, `lib/` | Dashboard contracts, request client, presentation, and shared utilities. |
+| `remedybench/` | Synthetic incidents, fixture repositories, and ground truth. |
+| `evals/results/` | Curated measured evaluation report. |
+| `tests/` | Unit, API, and integration coverage. |
+| `docs/` | Architecture, design, testing, deployment, and project status. |
 
-- [Product requirements](docs/PRD.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Design](docs/DESIGN.md)
-- [Decisions](docs/DECISIONS.md)
-- [Testing and evaluation](docs/TESTING.md)
-- [Deployment and demo strategy](docs/DEPLOYMENT.md)
-- [Current implementation status](docs/STATUS.md)
-- [RemedyBench provenance and contract](remedybench/README.md)
+See the [architecture](docs/ARCHITECTURE.md), [testing strategy](docs/TESTING.md), and
+[current status](docs/STATUS.md) for implementation details and known limitations.
+
+The benchmark-authored fixtures are CC0-1.0. No license has yet been assigned to the application
+source code.

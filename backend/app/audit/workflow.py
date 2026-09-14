@@ -1,4 +1,4 @@
-"""Bounded LangGraph workflow for deterministic Day 3 audits."""
+"""Bounded LangGraph workflow for deterministic audits."""
 
 from __future__ import annotations
 

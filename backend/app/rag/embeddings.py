@@ -104,7 +104,7 @@ class SemanticSnapshot:
 
 
 class SemanticIndex:
-    """Small in-process vector index appropriate for the local MVP."""
+    """Small in-process vector index for the local deployment."""
 
     def __init__(self, encoder: EmbeddingEncoder) -> None:
         self.encoder = encoder
