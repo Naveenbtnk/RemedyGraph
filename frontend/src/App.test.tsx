@@ -39,6 +39,7 @@ describe("RemedyGraph audit dashboard", () => {
     expect(markup).toContain("50.0%");
     expect(markup).toContain("Bundled sample · no live API");
     expect(markup).toContain("Run your own audit locally");
+    expect(markup).toContain("https://github.com/Naveenbtnk/RemedyGraph/blob/main/docs/PILOT.md");
     expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>.*Sample audit loaded/);
     expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>.*Guard previews are local-only/);
     expect(isDemoMode("demo")).toBe(true);

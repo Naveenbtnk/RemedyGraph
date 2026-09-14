@@ -15,6 +15,10 @@ Static frontend hosting alone cannot perform repository audits. A public backend
 isolation, authentication, a hardened operating-system sandbox, quotas, encrypted storage, and a
 separate disposable worker. Those controls are not implemented in this release.
 
+For a small private evaluation, each tester can run the local application on their own computer.
+The [pilot guide](PILOT.md) covers setup, workspace selection, a sample audit, and sanitized
+feedback. Do not point the hosted demo at a tester's local API or expose the API to the internet.
+
 ## Public read-only demo on Vercel
 
 Import this repository with the Vite preset and `frontend` as the root directory. The committed

@@ -4,9 +4,9 @@
 
 **Release:** Local, single-user `0.1.0`
 
-**Baseline:** `main` at `d0120fe7b13b4c6691e8c304e2e5bb69e858022a` passed GitHub CI
+**Baseline:** `main` at `04fe8a568124b46cc50347c30d29138ab3f0db10` passed GitHub CI
 
-**Current work:** Maintenance and public static demo integrated into `main`
+**Current work:** Public demo deployed; private local pilot onboarding prepared
 
 ## Implemented
 
@@ -53,13 +53,19 @@ Changed paths for this addition: `frontend/src/App.tsx`, `frontend/src/App.test.
 `README.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN.md`, `docs/DEPLOYMENT.md`,
 `docs/TESTING.md`, and this status.
 
+The read-only showcase is deployed at <https://remedy-graph.vercel.app>. A private local pilot
+guide now gives selected testers a reproducible installation, sample check, real-repository
+workflow, and sanitized feedback checklist. Each tester runs the API on loopback on their own
+computer; this does not add a shared backend or authentication.
+
 ## Verification
 
 The integrated `main` checkout passes 104 backend tests and 8 frontend tests. Ruff lint and format
 checks, mypy, Python compilation, frontend lint, local and demo builds, and the RemedyBench check
 pass. The npm dependency audit found no vulnerabilities. README links, CI YAML parsing,
-`git diff --check`, secret review, and a tracked runtime-database scan pass. GitHub CI for these
-changes is pending; the prior baseline passed its CI checks.
+`git diff --check`, secret review, and a tracked runtime-database scan pass. GitHub CI passed for
+the integrated demo release. The pilot documentation change passed 104 backend tests, 8 frontend
+tests, Ruff, mypy, Python compilation, both frontend builds, and the RemedyBench smoke check.
 
 ## Known limitations
 
@@ -77,5 +83,6 @@ changes is pending; the prior baseline passed its CI checks.
 
 ## Next task
 
-Deploy the `frontend` root on Vercel using the committed demo configuration. A broader benchmark
-and persisted evaluation API remain separate future work.
+Collect sanitized pilot feedback on action extraction, verdict accuracy, and setup friction from
+a small number of local users. A broader benchmark and persisted evaluation API remain separate
+future work.

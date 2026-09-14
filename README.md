@@ -24,6 +24,8 @@ postmortem action → invariant → repository evidence → check → verdict �
 The supported workflow is local and single-user. The default model provider is deterministic and
 network-free; a public, multi-user backend is **not** a supported deployment.
 
+For a small group evaluating their own repositories, use the [private local pilot guide](docs/PILOT.md).
+
 ## Requirements
 
 - Python 3.11 or newer
@@ -146,6 +148,7 @@ For a public read-only showcase, deploy the `frontend` directory as a Vite proje
 environment variables are needed. Visitors can inspect sample verdicts and selected evidence;
 repository input and guard controls are unavailable. The public view is a curated display of a
 locally measured I04 run, not a live audit. See [deployment details](docs/DEPLOYMENT.md).
+The current showcase is live at [remedy-graph.vercel.app](https://remedy-graph.vercel.app).
 
 ## Repository guide
 

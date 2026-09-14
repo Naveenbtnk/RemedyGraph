@@ -183,7 +183,7 @@ export default function App({ demoMode = isDemoMode(import.meta.env.MODE) }: App
               <strong>Public sample</strong>
               <span>Explore a saved audit of a synthetic repository. Nothing here accesses your files.</span>
             </div>
-            <a href="https://github.com/Naveenbtnk/RemedyGraph#run-a-local-audit">
+            <a href="https://github.com/Naveenbtnk/RemedyGraph/blob/main/docs/PILOT.md">
               Run your own audit locally <span aria-hidden="true">↗</span>
             </a>
           </div>
