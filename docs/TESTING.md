@@ -82,6 +82,8 @@ Tests combining real internal components with a deterministic model stub:
 - An action card shows missing proof beside located evidence.
 - An unapproved guard preview cannot execute.
 - Status formatting and guard execution eligibility are deterministic.
+- The static public demo renders measured sample verdicts and keeps audit and guard controls
+  unavailable.
 - The production build succeeds.
 
 ### Manual Demo Smoke Test

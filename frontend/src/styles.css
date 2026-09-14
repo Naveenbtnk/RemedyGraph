@@ -242,6 +242,43 @@ a {
   box-shadow: 0 0 0 4px rgba(21, 21, 19, 0.1);
 }
 
+.demo-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 22px;
+  margin-top: 25px;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(244, 244, 240, 0.86);
+  box-shadow: var(--raised-soft);
+  font-size: 12px;
+}
+
+.demo-banner div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.demo-banner strong {
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.demo-banner span {
+  color: var(--muted);
+}
+
+.demo-banner a {
+  color: var(--ink);
+  font-weight: 750;
+  white-space: nowrap;
+  text-underline-offset: 3px;
+}
+
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 240px;
@@ -989,6 +1026,7 @@ footer {
   }
 
   .topbar,
+  .demo-banner,
   footer {
     align-items: flex-start;
     flex-direction: column;

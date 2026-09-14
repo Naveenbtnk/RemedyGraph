@@ -4,6 +4,7 @@ import App from "./App";
 import type { ActionVerdict, Evidence, Guard } from "./api/types";
 import ActionCard from "./components/ActionCard";
 import GuardCard from "./components/GuardCard";
+import { isDemoMode } from "./demo/mode";
 import { canExecuteGuard, formatStatus } from "./lib/status";
 
 describe("RemedyGraph audit dashboard", () => {
@@ -29,6 +30,19 @@ describe("RemedyGraph audit dashboard", () => {
     expect(canExecuteGuard("WRITTEN")).toBe(true);
     expect(canExecuteGuard("PASSED")).toBe(true);
     expect(formatStatus("PARTIAL_COMPLETE")).toBe("partial complete");
+  });
+
+  it("renders the public sample without enabling audits or guards", () => {
+    const markup = renderToStaticMarkup(<App demoMode />);
+
+    expect(markup).toContain("Public sample");
+    expect(markup).toContain("50.0%");
+    expect(markup).toContain("Bundled sample · no live API");
+    expect(markup).toContain("Run your own audit locally");
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>.*Sample audit loaded/);
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>.*Guard previews are local-only/);
+    expect(isDemoMode("demo")).toBe(true);
+    expect(isDemoMode("production")).toBe(false);
   });
 
   it("renders missing proof beside located action evidence", () => {

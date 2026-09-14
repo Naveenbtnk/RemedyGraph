@@ -136,10 +136,16 @@ not a production hosting service.
 
 Do not expose the current API to the public internet. Public hosting would require authentication,
 tenant isolation, a hardened disposable execution worker, storage controls, and additional abuse
-limits. Any static frontend host must also reproduce the security headers described in
-[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). Audits never write application source; generated guards
+limits. Audits never write application source; generated guards
 are restricted to an application-owned directory and require preview-bound approval before writing
 or execution.
+
+For a public read-only showcase, deploy the `frontend` directory as a Vite project on Vercel.
+[`frontend/vercel.json`](frontend/vercel.json) builds the bundled I04 sample with
+`npm run build:demo`, serves `dist`, and applies restrictive response headers. No backend or
+environment variables are needed. Visitors can inspect sample verdicts and selected evidence;
+repository input and guard controls are unavailable. The public view is a curated display of a
+locally measured I04 run, not a live audit. See [deployment details](docs/DEPLOYMENT.md).
 
 ## Repository guide
 
@@ -149,7 +155,7 @@ or execution.
 | `backend/app/rag/` | Safe ingestion, indexing, retrieval, and redaction. |
 | `backend/app/guards/` | Guard templates, approval lifecycle, and bounded execution. |
 | `backend/app/evaluation/` | Typed RemedyBench evaluator and CLI. |
-| `frontend/src/api/`, `components/`, `lib/` | Dashboard contracts, request client, presentation, and shared utilities. |
+| `frontend/src/api/`, `components/`, `demo/`, `lib/` | Dashboard contracts, request client, presentation, public sample, and shared utilities. |
 | `remedybench/` | Synthetic incidents, fixture repositories, and ground truth. |
 | `evals/results/` | Curated measured evaluation report. |
 | `tests/` | Unit, API, and integration coverage. |

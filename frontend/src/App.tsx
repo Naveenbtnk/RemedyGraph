@@ -10,28 +10,25 @@ import type {
 } from "./api/types";
 import ActionCard from "./components/ActionCard";
 import GuardCard from "./components/GuardCard";
+import { isDemoMode } from "./demo/mode";
+import { sampleActions, sampleEvidence, sampleGraph, sampleIncident, sampleRun } from "./demo/sampleAudit";
 import Panel from "./components/Panel";
 import { formatStatus } from "./lib/status";
 import type { PendingAction } from "./lib/status";
 
-const DEFAULT_INCIDENT = `# Recommendations cascade into catalog
+const DEFAULT_INCIDENT = sampleIncident;
+interface AppProps {
+  demoMode?: boolean;
+}
 
-Catalog called recommendations synchronously and lacked complete failure isolation.
-
-## Corrective actions
-
-- Add a circuit breaker.
-- Serve a safe fallback while open.
-- Test half-open recovery.
-`;
-
-export default function App() {
-  const [repositoryPath, setRepositoryPath] = useState("");
+export default function App({ demoMode = isDemoMode(import.meta.env.MODE) }: AppProps = {}) {
+  const isPublicDemo = demoMode;
+  const [repositoryPath, setRepositoryPath] = useState(isPublicDemo ? "remedybench/repositories/I04" : "");
   const [incidentText, setIncidentText] = useState(DEFAULT_INCIDENT);
-  const [run, setRun] = useState<RunSummary | null>(null);
-  const [actions, setActions] = useState<ActionVerdict[]>([]);
-  const [evidence, setEvidence] = useState<Evidence[]>([]);
-  const [graph, setGraph] = useState<EvidenceGraph>({ nodes: [], edges: [] });
+  const [run, setRun] = useState<RunSummary | null>(isPublicDemo ? sampleRun : null);
+  const [actions, setActions] = useState<ActionVerdict[]>(isPublicDemo ? sampleActions : []);
+  const [evidence, setEvidence] = useState<Evidence[]>(isPublicDemo ? sampleEvidence : []);
+  const [graph, setGraph] = useState<EvidenceGraph>(isPublicDemo ? sampleGraph : { nodes: [], edges: [] });
   const [guards, setGuards] = useState<Guard[]>([]);
   const [executions, setExecutions] = useState<Record<string, GuardExecution>>({});
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
@@ -58,6 +55,7 @@ export default function App() {
 
   async function startAudit(event: FormEvent) {
     event.preventDefault();
+    if (isPublicDemo) return;
     setPendingAction("audit");
     setError(null);
     setRun(null);
@@ -96,7 +94,7 @@ export default function App() {
   }
 
   async function previewGuards() {
-    if (!run) return;
+    if (!run || isPublicDemo) return;
     setPendingAction("preview");
     setError(null);
     try {
@@ -112,7 +110,7 @@ export default function App() {
   }
 
   async function decideGuard(guard: Guard, approved: boolean) {
-    if (!run) return;
+    if (!run || isPublicDemo) return;
     setPendingAction("decision");
     setError(null);
     try {
@@ -129,7 +127,7 @@ export default function App() {
   }
 
   async function executeGuard(guard: Guard) {
-    if (!run) return;
+    if (!run || isPublicDemo) return;
     setPendingAction("execution");
     setError(null);
     try {
@@ -171,13 +169,25 @@ export default function App() {
             </span>
           </a>
           <div className="header-context">
-            <span className="context-label">Local workspace</span>
+            <span className="context-label">{isPublicDemo ? "Public sample" : "Local workspace"}</span>
             <span className="run-state">
               <span className="status-dot" aria-hidden="true" />
-              {run ? `Run ${formatStatus(run.status)}` : "System ready"}
+              {isPublicDemo ? "Read-only demo" : run ? `Run ${formatStatus(run.status)}` : "System ready"}
             </span>
           </div>
         </header>
+
+        {isPublicDemo && (
+          <div className="demo-banner" role="note">
+            <div>
+              <strong>Public sample</strong>
+              <span>Explore a saved audit of a synthetic repository. Nothing here accesses your files.</span>
+            </div>
+            <a href="https://github.com/Naveenbtnk/RemedyGraph#run-a-local-audit">
+              Run your own audit locally <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+        )}
 
         <section className="hero" id="top">
           <div className="hero-copy">
@@ -190,12 +200,20 @@ export default function App() {
           </div>
           <div className="hero-note">
             <span className="note-index">01</span>
-            <p>Local-first</p>
-            <small>Your repository stays inside the configured workspace.</small>
+            <p>{isPublicDemo ? "Read-only" : "Local-first"}</p>
+            <small>
+              {isPublicDemo
+                ? "Bundled results only. Local audits run on your machine."
+                : "Your repository stays inside the configured workspace."}
+            </small>
           </div>
         </section>
 
-        <Panel title="Configure the audit" kicker="New assessment" className="setup-panel">
+        <Panel
+          title={isPublicDemo ? "Explore the sample audit" : "Configure the audit"}
+          kicker={isPublicDemo ? "Bundled incident I04" : "New assessment"}
+          className="setup-panel"
+        >
           <form onSubmit={startAudit} className="audit-form">
             <label>
               <span>Repository path</span>
@@ -207,9 +225,14 @@ export default function App() {
                 autoComplete="off"
                 spellCheck={false}
                 aria-describedby="repository-help"
+                readOnly={isPublicDemo}
                 required
               />
-              <small id="repository-help">Must be inside the configured workspace root.</small>
+              <small id="repository-help">
+                {isPublicDemo
+                  ? "This public site does not access repositories."
+                  : "Must be inside the configured workspace root."}
+              </small>
             </label>
             <label>
               <span>Incident postmortem</span>
@@ -219,11 +242,16 @@ export default function App() {
                 rows={8}
                 maxLength={1_000_000}
                 aria-describedby="incident-help"
+                readOnly={isPublicDemo}
                 required
               />
               <small id="incident-help">
-                Markdown or plain text with explicit corrective actions ·{" "}
-                {incidentText.length.toLocaleString()} characters
+                {isPublicDemo
+                  ? "Bundled synthetic incident. No content is sent or stored."
+                  : <>
+                      Markdown or plain text with explicit corrective actions ·{" "}
+                      {incidentText.length.toLocaleString()} characters
+                    </>}
               </small>
             </label>
             <div className="form-action">
@@ -231,8 +259,12 @@ export default function App() {
                 <span>Bounded by design</span>
                 <small>6 model attempts · 3 investigation rounds</small>
               </div>
-              <button className="primary" type="submit" disabled={busy}>
-                <span>{pendingAction === "audit" ? "Auditing…" : "Start audit"}</span>
+              <button className="primary" type="submit" disabled={busy || isPublicDemo}>
+                <span>
+                  {isPublicDemo
+                    ? "Sample audit loaded"
+                    : pendingAction === "audit" ? "Auditing…" : "Start audit"}
+                </span>
                 <span aria-hidden="true">→</span>
               </button>
             </div>
@@ -246,7 +278,7 @@ export default function App() {
 
         <div className="section-label">
           <span>Audit overview</span>
-          <span>{run ? run.id : "Awaiting first run"}</span>
+          <span>{isPublicDemo ? "Bundled sample · no live API" : run ? run.id : "Awaiting first run"}</span>
         </div>
         <div className="summary-grid" aria-label="Audit summary">
           <Panel title="Run status" kicker="Progress" className="summary-card">
@@ -254,7 +286,9 @@ export default function App() {
               {run ? formatStatus(run.status) : "Not started"}
             </p>
             <p className="muted">
-              {run
+              {isPublicDemo
+                ? "A deterministic sample result for safe public exploration."
+                : run
                 ? `${run.completed_actions}/${run.total_actions} actions assessed`
                 : "Select a repository to begin."}
             </p>
@@ -317,7 +351,11 @@ export default function App() {
             <p className="metric compact-metric">
               {graph.nodes.length} nodes <span>·</span> {graph.edges.length} edges
             </p>
-            <p className="muted">An accessible inventory of the audit’s evidence relationships.</p>
+            <p className="muted">
+              {isPublicDemo
+                ? "Selected relationships from the bundled audit; run locally for the full trace."
+                : "An accessible inventory of the audit’s evidence relationships."}
+            </p>
             <ul className="graph-list">
               {graph.nodes.map((node) => (
                 <li key={node.id}>
@@ -332,15 +370,19 @@ export default function App() {
             <div className="guard-symbol" aria-hidden="true">✓</div>
             <p className="guard-lead">Close the proof gap with a reviewable protection.</p>
             <p className="muted">
-              Previews never modify the repository. Every guard requires an explicit decision.
+              {isPublicDemo
+                ? "Guard creation and execution are disabled in the public demo."
+                : "Previews never modify the repository. Every guard requires an explicit decision."}
             </p>
             <button
               className="secondary-action"
               type="button"
               onClick={previewGuards}
-              disabled={!run || run.status !== "COMPLETE" || busy}
+              disabled={!run || run.status !== "COMPLETE" || busy || isPublicDemo}
             >
-              {pendingAction === "preview" ? "Generating previews…" : "Generate guard previews"}
+              {isPublicDemo
+                ? "Guard previews are local-only"
+                : pendingAction === "preview" ? "Generating previews…" : "Generate guard previews"}
               <span aria-hidden="true">→</span>
             </button>
           </Panel>

@@ -43,6 +43,8 @@ FastAPI modular monolith
 - Visualize the evidence graph.
 - Preview guard diffs and capture explicit approval.
 - Leave evaluation reporting to the CLI and saved JSON artifact.
+- A separate static demo build displays a curated synthetic audit and disables API-backed actions.
+  Vercel serves only this frontend build with a no-connect content security policy.
 
 ### API Layer
 

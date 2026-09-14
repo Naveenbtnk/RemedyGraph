@@ -6,7 +6,7 @@
 
 **Baseline:** `main` at `d0120fe7b13b4c6691e8c304e2e5bb69e858022a` passed GitHub CI
 
-**Current work:** Repository and documentation maintenance on `codex/project-maintenance`
+**Current work:** Public static demo preparation on `codex/project-maintenance`
 
 ## Implemented
 
@@ -37,10 +37,26 @@ Changed paths: `README.md`, `.env.example`, `.editorconfig`, `.github/workflows/
 `docs/ARCHITECTURE.md`, `docs/DESIGN.md`, `docs/DEPLOYMENT.md`, `docs/TESTING.md`, this status,
 and `docs/images/dashboard.png`. The obsolete `frontend/src/ui.ts` and image note were removed.
 
+## Public demo preparation
+
+- Added a separate Vite demo build with a bundled synthetic I04 audit. The locally measured
+  result has one missing, one partial, and one verified action with 50% assessed protection
+  coverage. The public view presents selected evidence relationships and labels the selection.
+- Read-only fields, disabled audit and guard actions, and an explicit local-setup link distinguish
+  the static showcase from the local application.
+- `frontend/vercel.json` selects the demo build, keeps the Vercel deployment frontend-only, and
+  sets a content security policy that disallows outbound connections. No backend environment
+  variables or live API are needed.
+
+Changed paths for this addition: `frontend/src/App.tsx`, `frontend/src/App.test.tsx`,
+`frontend/src/styles.css`, `frontend/src/demo/`, `frontend/package.json`, `frontend/vercel.json`,
+`README.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN.md`, `docs/DEPLOYMENT.md`,
+`docs/TESTING.md`, and this status.
+
 ## Verification
 
-On this branch, 104 backend tests and 6 frontend tests pass. Ruff lint and format checks, mypy,
-Python compilation, frontend lint, production build, and the RemedyBench check pass. The npm
+On this branch, 104 backend tests and 8 frontend tests pass. Ruff lint and format checks, mypy,
+Python compilation, frontend lint, local and demo builds, and the RemedyBench check pass. The npm
 dependency audit found no vulnerabilities. README links, CI YAML parsing, `git diff --check`,
 secret review, and a tracked runtime-database scan pass. GitHub CI has not run on this branch; the
 prior baseline passed its CI checks.
@@ -61,5 +77,5 @@ prior baseline passed its CI checks.
 
 ## Next task
 
-Review the maintenance branch for integration. A broader benchmark and persisted evaluation API
-remain separate future work.
+Review and integrate the maintenance and demo branch, then deploy the `frontend` root on Vercel.
+A broader benchmark and persisted evaluation API remain separate future work.

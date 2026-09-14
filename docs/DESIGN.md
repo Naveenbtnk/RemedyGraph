@@ -62,3 +62,7 @@ between an unused declaration, incomplete protection, and a structurally support
 The evaluation interface is a CLI and a saved JSON report, not a dashboard screen. The evidence
 graph is an accessible inventory rather than an interactive canvas. File upload and asynchronous
 run polling are not implemented; the current UI accepts pasted text and a local repository path.
+
+The public demo is a separate static build. It displays a curated synthetic I04 result with
+read-only fields, disabled audit and guard actions, and a link to the local setup instructions.
+Its graph inventory is explicitly labeled as a selection from the full audit trace.

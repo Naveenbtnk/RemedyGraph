@@ -15,7 +15,21 @@ Static frontend hosting alone cannot perform repository audits. A public backend
 isolation, authentication, a hardened operating-system sandbox, quotas, encrypted storage, and a
 separate disposable worker. Those controls are not implemented in this release.
 
-Production frontend hosting must reproduce the security headers configured for Vite preview:
+## Public read-only demo on Vercel
+
+Import this repository with the Vite preset and `frontend` as the root directory. The committed
+`frontend/vercel.json` overrides the dashboard build command with `npm run build:demo`, uses
+`npm ci` and `dist`, and sets response headers. Do not import backend `REMEDYGRAPH_*` variables.
+No environment variables are required for this static site.
+
+The demo includes the synthetic I04 incident and a curated snapshot from a locally measured
+audit: one missing, one partial, one verified action, and 50% assessed protection coverage.
+Its repository and postmortem fields are read-only; audit submission and guard controls are
+disabled. Its evidence graph shows selected relationships rather than the full persisted graph.
+The banner links visitors to the local setup instructions for a real audit. Run
+`npm run build:demo --prefix frontend` to verify the public build before deployment.
+
+Other frontend hosts must reproduce the security headers configured for Vite preview:
 restrict scripts and styles to the same origin, deny framing and object embedding, disable camera,
 microphone, and geolocation, use `nosniff`, and omit referrer data. Keep the API CORS origin set to
 the exact frontend origin; the current release accepts neither cross-origin credentials nor
