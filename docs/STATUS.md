@@ -6,7 +6,7 @@
 
 **Baseline:** `main` at `d0120fe7b13b4c6691e8c304e2e5bb69e858022a` passed GitHub CI
 
-**Current work:** Public static demo preparation on `codex/project-maintenance`
+**Current work:** Maintenance and public static demo integrated into `main`
 
 ## Implemented
 
@@ -55,11 +55,11 @@ Changed paths for this addition: `frontend/src/App.tsx`, `frontend/src/App.test.
 
 ## Verification
 
-On this branch, 104 backend tests and 8 frontend tests pass. Ruff lint and format checks, mypy,
-Python compilation, frontend lint, local and demo builds, and the RemedyBench check pass. The npm
-dependency audit found no vulnerabilities. README links, CI YAML parsing, `git diff --check`,
-secret review, and a tracked runtime-database scan pass. GitHub CI has not run on this branch; the
-prior baseline passed its CI checks.
+The integrated `main` checkout passes 104 backend tests and 8 frontend tests. Ruff lint and format
+checks, mypy, Python compilation, frontend lint, local and demo builds, and the RemedyBench check
+pass. The npm dependency audit found no vulnerabilities. README links, CI YAML parsing,
+`git diff --check`, secret review, and a tracked runtime-database scan pass. GitHub CI for these
+changes is pending; the prior baseline passed its CI checks.
 
 ## Known limitations
 
@@ -77,5 +77,5 @@ prior baseline passed its CI checks.
 
 ## Next task
 
-Review and integrate the maintenance and demo branch, then deploy the `frontend` root on Vercel.
-A broader benchmark and persisted evaluation API remain separate future work.
+Deploy the `frontend` root on Vercel using the committed demo configuration. A broader benchmark
+and persisted evaluation API remain separate future work.
