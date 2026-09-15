@@ -1,12 +1,12 @@
 # Project Status
 
-**Updated:** 2026-09-14
+**Updated:** 2026-09-15
 
-**Release:** Local, single-user `0.1.0`
+**Release:** Local `0.1.0` with repository-local GitHub Actions pilot
 
-**Baseline:** `main` at `04fe8a568124b46cc50347c30d29138ab3f0db10` passed GitHub CI
+**Baseline:** `main` at `be6f437485c864fe4b7e57831e4ef88734d34bd0` passed GitHub CI
 
-**Current work:** Public demo deployed; private local pilot onboarding prepared
+**Current work:** Public demo deployed; local and GitHub Actions pilot paths prepared
 
 ## Implemented
 
@@ -58,19 +58,34 @@ guide now gives selected testers a reproducible installation, sample check, real
 workflow, and sanitized feedback checklist. Each tester runs the API on loopback on their own
 computer; this does not add a shared backend or authentication.
 
+## Repository-local GitHub Actions pilot
+
+- Added `remedygraph-audit`, a bounded CLI that runs the existing deterministic workflow with an
+  ephemeral database and contained Markdown/plain-text input.
+- Added a composite action, a manual repository smoke workflow, and a copyable customer workflow
+  with read-only permissions, disabled credential persistence, pinned external actions, a
+  ten-minute timeout, and seven-day artifact retention.
+- Added a versioned minimized report that omits absolute paths, excerpts, arbitrary metadata,
+  observed values, databases, and guard artifacts.
+- Kept the Vercel showcase read-only and the FastAPI service local. A central GitHub App,
+  multi-tenant database, and RemedyGraph-operated worker are not part of this pilot.
+
 ## Verification
 
-The integrated `main` checkout passes 104 backend tests and 8 frontend tests. Ruff lint and format
-checks, mypy, Python compilation, frontend lint, local and demo builds, and the RemedyBench check
-pass. The npm dependency audit found no vulnerabilities. README links, CI YAML parsing,
-`git diff --check`, secret review, and a tracked runtime-database scan pass. GitHub CI passed for
-the integrated demo release. The pilot documentation change passed 104 backend tests, 8 frontend
-tests, Ruff, mypy, Python compilation, both frontend builds, and the RemedyBench smoke check.
+The GitHub pilot branch passes 111 backend tests and 8 frontend tests. Ruff lint and format checks,
+mypy, Python compilation, frontend lint, local and demo builds, and the RemedyBench check pass. The
+npm dependency audit found no vulnerabilities. Workflow YAML parsing, immutable external action
+references, `git diff --check`, secret review, and a tracked runtime-database scan pass. The only
+test warning is Starlette's upstream AnyIO `BlockingPortal` alias deprecation. GitHub-hosted pilot
+dispatch remains a post-merge manual smoke test because unmerged local action code cannot be
+selected by an immutable repository commit reference.
 
 ## Known limitations
 
 - The supported deployment is local and single-user. Public multi-tenant hosting would require
   authentication, tenant isolation, and a stronger operating-system execution sandbox.
+- GitHub pilot installation and artifact retrieval are manual. GitHub provides the authenticated
+  repository boundary; RemedyGraph does not yet operate a customer identity or storage service.
 - The default provider is deterministic and local. Live vendor adapters are not implemented.
 - Python is the primary structurally verified language. Runtime-only requirements remain
   `UNVERIFIABLE` without their required context.
@@ -83,6 +98,6 @@ tests, Ruff, mypy, Python compilation, both frontend builds, and the RemedyBench
 
 ## Next task
 
-Collect sanitized pilot feedback on action extraction, verdict accuracy, and setup friction from
-a small number of local users. A broader benchmark and persisted evaluation API remain separate
-future work.
+Select an application source license, publish a reviewed immutable Action commit reference, and
+collect sanitized feedback from a small number of GitHub pilot users. A central GitHub App and
+hosted multi-tenant control plane remain separate future work.

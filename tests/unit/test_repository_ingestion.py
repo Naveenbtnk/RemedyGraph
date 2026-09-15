@@ -46,6 +46,9 @@ def test_walker_ignores_secrets_dependencies_binaries_and_applies_limits(tmp_pat
     git_dir = repository / ".git"
     git_dir.mkdir()
     (git_dir / "config").write_text("ignored", encoding="utf-8")
+    report_dir = repository / ".remedygraph"
+    report_dir.mkdir()
+    (report_dir / "report.json").write_text('{"ignored": true}', encoding="utf-8")
 
     report = RepositoryWalker(
         tmp_path, IndexLimits(max_file_bytes=100, max_index_bytes=1_000, max_files=1)
@@ -56,7 +59,7 @@ def test_walker_ignores_secrets_dependencies_binaries_and_applies_limits(tmp_pat
     assert report.skipped["secret_file"] == 2
     assert report.skipped["ignored_extension"] == 1
     assert report.skipped["oversized_file"] == 1
-    assert report.skipped["ignored_directory"] == 2
+    assert report.skipped["ignored_directory"] == 3
     assert report.skipped["max_files"] == 1
 
 

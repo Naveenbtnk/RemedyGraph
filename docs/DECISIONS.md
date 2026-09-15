@@ -154,6 +154,21 @@ safe. Exact template and digest binding make the execution surface small and rev
 **Consequence:** The MVP guard vocabulary is intentionally narrow. New guard types require a new
 versioned application template, validation rules, and seeded good/bad tests.
 
+## ADR-018: Repository-Owned GitHub Actions Pilot
+
+**Status:** Accepted
+**Decision:** Offer real pilot audits as an opt-in composite GitHub Action that runs the existing
+bounded deterministic workflow inside the customer's repository-owned GitHub Actions job. Use
+GitHub authentication, repository authorization, ephemeral runners, and repository artifact
+access rather than operating a shared RemedyGraph identity, storage, or execution service. Emit a
+minimized versioned JSON report and exclude the guard lifecycle.
+**Reason:** This gives invited users a real audit without transferring source code or long-lived
+repository credentials to an immature shared backend. It can use public-repository or account
+included Actions capacity and materially reduces cross-customer execution risk.
+**Consequence:** Workflow installation and report retrieval are manual. The Vercel showcase remains
+read-only, and a central dashboard, GitHub App installation flow, Firebase authentication,
+Cloudflare storage, and Cloudflare-hosted sandboxes remain future production-service work.
+
 ## Decision Template
 
 ```markdown

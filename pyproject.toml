@@ -33,6 +33,7 @@ dev = [
 
 [project.scripts]
 remedygraph-eval = "backend.app.evaluation.cli:main"
+remedygraph-audit = "backend.app.pilot.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["backend*"]

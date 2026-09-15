@@ -1,8 +1,8 @@
 # RemedyGraph Product Requirements Document
 
-**Status:** Local release scope
-**Version:** 1.0
-**Scope:** Local, single-user release
+**Status:** Local release with repository-local pilot
+**Version:** 1.1
+**Scope:** Local single-user release and opt-in GitHub Actions pilot
 
 ## 1. Product Summary
 
@@ -54,13 +54,15 @@ Given a postmortem and a repository, RemedyGraph will answer:
 6. Generate reviewable tests or policy guards for incomplete actions.
 7. Measure quality and cost on RemedyBench.
 8. Run locally without requiring paid infrastructure.
+9. Let invited GitHub users run the bounded read-only audit in repositories they control without
+   transferring repository source to a RemedyGraph-operated backend.
 
 ## 6. Non-Goals
 
 - Live incident detection, alert triage, or root-cause analysis.
 - Automatic production remediation.
 - Automatic commits, pull requests, or merges.
-- Enterprise authentication or multi-tenancy.
+- A shared RemedyGraph authentication service or multi-tenant backend.
 - Real Jira, Slack, PagerDuty, or observability integrations.
 - Complete language coverage.
 - Formal verification or a guarantee of operational reliability.
@@ -164,6 +166,8 @@ Given a postmortem and a repository, RemedyGraph will answer:
 - A RemedyBench smoke set produces reproducible evaluation output.
 - Backend tests and frontend build pass in CI.
 - No API keys, tokens, secrets, fabricated metrics, or generated databases are committed.
+- The GitHub pilot runs with read-only repository permission, writes only its ignored minimized
+  report, and uploads that report through repository-owned Actions artifact storage.
 
 ## 11. Success Metrics
 
@@ -186,6 +190,7 @@ Targets are goals, not claims. Actual values must come from saved evaluations.
 | Verification | Bounded workflow, deterministic checks, verdicts, audit persistence |
 | Guard lifecycle | Guard preview, approval, execution, and dashboard workflow |
 | Evaluation and release | RemedyBench, CI, documentation, and reproducible demo |
+| Repository-local pilot | Bounded audit CLI, installable GitHub Action, minimized report, and secure workflow example |
 
 ## 13. Release Criteria
 

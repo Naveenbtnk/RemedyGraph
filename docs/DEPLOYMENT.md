@@ -15,6 +15,20 @@ Static frontend hosting alone cannot perform repository audits. A public backend
 isolation, authentication, a hardened operating-system sandbox, quotas, encrypted storage, and a
 separate disposable worker. Those controls are not implemented in this release.
 
+## Repository-local GitHub Actions pilot
+
+Invited users may run a real audit through the installable `action.yml` adapter documented in
+[`GITHUB_PILOT.md`](GITHUB_PILOT.md). The repository owner's GitHub account supplies
+authentication, authorization, ephemeral execution, usage accounting, and private artifact
+storage. RemedyGraph receives neither repository source nor credentials because it operates inside
+that repository's workflow job.
+
+The checked-in manual pilot workflow demonstrates the action against this repository. Customer
+repositories should copy the reviewed example, pin RemedyGraph to a full commit SHA, retain
+`contents: read`, and dispatch it manually. The workflow does not run repository tests or builds,
+and the pilot excludes guard writing and execution. This is not a central hosted service and does
+not make the local FastAPI backend safe to expose publicly.
+
 For a small private evaluation, each tester can run the local application on their own computer.
 The [pilot guide](PILOT.md) covers setup, workspace selection, a sample audit, and sanitized
 feedback. Do not point the hosted demo at a tester's local API or expose the API to the internet.
