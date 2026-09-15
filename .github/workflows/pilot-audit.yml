@@ -1,0 +1,42 @@
+name: Pilot audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      postmortem:
+        description: Repository-relative Markdown or text postmortem
+        required: true
+        default: remedybench/incidents/I04.md
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: remedygraph-pilot-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+      - name: Run repository-local RemedyGraph action
+        id: remedygraph
+        uses: ./
+        with:
+          postmortem: ${{ inputs.postmortem }}
+      - name: Upload minimized report
+        if: ${{ always() && hashFiles('.remedygraph/report.json') != '' }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: remedygraph-report-${{ github.run_id }}
+          path: ${{ steps.remedygraph.outputs.report }}
+          if-no-files-found: error
+          retention-days: 7

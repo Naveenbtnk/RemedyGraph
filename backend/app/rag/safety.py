@@ -48,6 +48,7 @@ IGNORED_DIRECTORIES = frozenset(
         ".next",
         ".pnpm-store",
         ".pytest_cache",
+        ".remedygraph",
         ".ruff_cache",
         ".tox",
         ".venv",

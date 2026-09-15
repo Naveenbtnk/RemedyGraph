@@ -21,10 +21,13 @@ postmortem action → invariant → repository evidence → check → verdict �
 - Explore an evidence graph and preview CI guards before any write or execution.
 - Reproduce the five-incident synthetic RemedyBench evaluation without model credentials.
 
-The supported workflow is local and single-user. The default model provider is deterministic and
-network-free; a public, multi-user backend is **not** a supported deployment.
+The dashboard workflow is local and single-user. The optional repository-local GitHub Actions
+pilot lets invited users run the same bounded audit in repositories they control. The default
+model provider is deterministic and network-free; a shared multi-user backend is **not** a
+supported deployment.
 
 For a small group evaluating their own repositories, use the [private local pilot guide](docs/PILOT.md).
+For a repository-owned hosted run, use the [GitHub Actions pilot](docs/GITHUB_PILOT.md).
 
 ## Requirements
 
@@ -128,6 +131,20 @@ npm run build --prefix frontend
 python -m backend.app.evaluation.cli --benchmark remedybench --check
 ```
 
+## GitHub Actions pilot
+
+The repository includes a composite action and a copyable
+[read-only workflow](docs/examples/remedygraph-audit.yml). The workflow runs on a repository-owned
+GitHub runner, uses an ephemeral SQLite database, and uploads a minimized JSON report for seven
+days. It does not send source code to RemedyGraph, execute the repository's tests or build, or
+write or execute guards.
+
+Copy the example into an invited repository, replace `COMMIT_SHA` with a reviewed full RemedyGraph
+commit SHA, and run it manually from the repository's Actions page. Public repositories receive
+free standard GitHub-hosted runner usage; private repositories consume the owner's included
+minutes and artifact storage. Review the complete
+[pilot threat boundary and setup](docs/GITHUB_PILOT.md) before inviting users.
+
 ## Deployment and security
 
 For a persistent local installation, set `REMEDYGRAPH_WORKSPACE_ROOT` to a dedicated parent of
@@ -136,7 +153,7 @@ outside this checkout. Bind the API to `127.0.0.1`. The frontend can be built wi
 `npm run build --prefix frontend`; `npm run preview --prefix frontend` is a local build preview,
 not a production hosting service.
 
-Do not expose the current API to the public internet. Public hosting would require authentication,
+Do not expose the current API to the public internet. Shared public hosting would require authentication,
 tenant isolation, a hardened disposable execution worker, storage controls, and additional abuse
 limits. Audits never write application source; generated guards
 are restricted to an application-owned directory and require preview-bound approval before writing
@@ -158,6 +175,7 @@ The current showcase is live at [remedy-graph.vercel.app](https://remedy-graph.v
 | `backend/app/rag/` | Safe ingestion, indexing, retrieval, and redaction. |
 | `backend/app/guards/` | Guard templates, approval lifecycle, and bounded execution. |
 | `backend/app/evaluation/` | Typed RemedyBench evaluator and CLI. |
+| `backend/app/pilot/`, `action.yml` | Minimized report CLI and repository-local GitHub Action. |
 | `frontend/src/api/`, `components/`, `demo/`, `lib/` | Dashboard contracts, request client, presentation, public sample, and shared utilities. |
 | `remedybench/` | Synthetic incidents, fixture repositories, and ground truth. |
 | `evals/results/` | Curated measured evaluation report. |
@@ -167,5 +185,8 @@ The current showcase is live at [remedy-graph.vercel.app](https://remedy-graph.v
 See the [architecture](docs/ARCHITECTURE.md), [testing strategy](docs/TESTING.md), and
 [current status](docs/STATUS.md) for implementation details and known limitations.
 
-The benchmark-authored fixtures are CC0-1.0. No license has yet been assigned to the application
-source code.
+The benchmark-authored fixtures are CC0-1.0.
+
+## License
+
+RemedyGraph is licensed under the [Apache License 2.0](LICENSE).
