@@ -26,7 +26,10 @@ def _repository(tmp_path: Path) -> Path:
     return repository
 
 
-def test_pilot_cli_writes_minimized_report_without_absolute_paths(tmp_path: Path) -> None:
+def test_pilot_cli_writes_minimized_report_without_absolute_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("GITHUB_WORKSPACE", raising=False)
     repository = _repository(tmp_path)
 
     exit_code = main(
