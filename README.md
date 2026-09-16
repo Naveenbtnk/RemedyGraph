@@ -1,10 +1,33 @@
 # RemedyGraph
 
+RemedyGraph verifies whether fixes from incident postmortems are actually implemented in code. It
+scans a repository, checks each corrective action, and produces evidence-backed verdicts.
+
+**Use case:** A team fixes a production outage but wants proof the issue will not happen again.
+RemedyGraph audits the code and confirms whether the fix is complete or missing.
+
+[![CI](https://github.com/Naveenbtnk/RemedyGraph/actions/workflows/ci.yml/badge.svg)](https://github.com/Naveenbtnk/RemedyGraph/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-111111?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-API-111111?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-Dashboard-111111?style=flat-square&logo=react&logoColor=white)](https://react.dev/)
+[![SQLite](https://img.shields.io/badge/SQLite-Storage-111111?style=flat-square&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-111111?style=flat-square&logo=apache&logoColor=white)](LICENSE)
+[![Live demo](https://img.shields.io/badge/Live_demo-Vercel-111111?style=flat-square&logo=vercel&logoColor=white)](https://remedy-graph.vercel.app)
+
 RemedyGraph audits whether corrective actions from incident postmortems are implemented and
 protected against regression. It turns each action into a measurable requirement, inspects a local
 repository, runs bounded deterministic checks, and presents a verdict with traceable evidence.
 
-![RemedyGraph audit dashboard](docs/images/dashboard.png)
+## Visual Overview
+
+[![RemedyGraph audit dashboard](docs/images/dashboard.png)](https://drive.google.com/file/d/16dq5QTbeR1b6WojloqRdKMLptTgfI_Yb/view?usp=sharing)
+
+*Select the dashboard to watch the full end-to-end audit demonstration, or view the
+[short audit walkthrough](https://drive.google.com/file/d/1GDCVhbJ5GdVcIW9e3Py6rDeFdaZOKsAi/view?usp=sharing).*
+
+- Dashboard view showing audit results
+- Action level evidence inspection
+- End to end audit flow
 
 The result is an audit, not a chatbot response:
 
@@ -20,6 +43,14 @@ postmortem action → invariant → repository evidence → check → verdict �
 - Report `VERIFIED`, `PARTIAL`, `MISSING`, or `UNVERIFIABLE` with citations or explicit proof gaps.
 - Explore an evidence graph and preview CI guards before any write or execution.
 - Reproduce the five-incident synthetic RemedyBench evaluation without model credentials.
+
+## Why this matters
+
+- Incident fixes are often not verified after implementation
+- Missing validation leads to repeated production failures
+- Teams lack proof that corrective actions are enforced
+
+RemedyGraph ensures every fix is measurable, verified, and protected against regression.
 
 The dashboard workflow is local and single-user. The optional repository-local GitHub Actions
 pilot lets invited users run the same bounded audit in repositories they control. The default
@@ -75,6 +106,33 @@ Open [http://localhost:5173](http://localhost:5173). Enter
 demonstrates missing, partial, and verified actions in one audit. Expand an action to inspect its
 evidence and missing proof. Guard previews are read-only; writing and execution require an explicit
 approval for that exact preview.
+
+## Example Audit
+
+Repository: `sample-service`<br>
+Incident: API failure due to missing retry logic
+
+Before:
+
+- No retry mechanism
+- No test coverage
+
+After running RemedyGraph:
+
+- Invariant: API calls must include retry logic
+- Evidence: retry wrapper found in service layer
+- Test: retry behavior validated
+- Verdict: `VERIFIED`
+
+*Replace with real repository example later.*
+
+## Engineering Highlights
+
+- Designed invariant-based verification system for postmortem actions
+- Built deterministic audit pipeline with reproducible results
+- Implemented safe repository indexing with strict limits
+- Developed evidence graph for traceable verification
+- Integrated CI-ready checks and evaluation benchmarks
 
 The API exposes interactive documentation at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 and a health check at `/health`. Product endpoints are under `/api/v1`.
