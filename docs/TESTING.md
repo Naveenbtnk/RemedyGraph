@@ -45,6 +45,8 @@ Fast, deterministic, network-free tests for:
 - Audit-run provider gateway success/failure accounting against the same incident counter.
 - Competing incident services invoke the provider only after winning the atomic reservation, and
   SQLite lock exhaustion returns a typed service-unavailable API response.
+- Pilot CLI path containment, minimized-report serialization, and rejection of postmortem/output
+  escapes.
 
 ### Integration Tests
 
@@ -95,6 +97,15 @@ Using the bundled `I04` incident and repository:
 3. Expand the circuit-breaker and fallback actions to inspect their evidence gaps.
 4. Generate a guard preview, approve it, and execute it through the bounded runner.
 5. Compare the displayed result with the saved RemedyBench report.
+
+### GitHub Pilot Smoke Test
+
+1. Manually dispatch `.github/workflows/pilot-audit.yml` with
+   `remedybench/incidents/I04.md`.
+2. Confirm the job has only read access and completes within its outer timeout.
+3. Download the seven-day artifact and validate `schema_version` is `1`.
+4. Confirm the JSON contains no absolute checkout path, source excerpt, evidence metadata,
+   observed configuration value, database, or guard artifact.
 
 ## 3. RemedyBench
 
@@ -214,6 +225,8 @@ Update this section when package scripts are created. Do not retain commands tha
   SQLite connections.
 - Audit snapshots, evidence graphs, and guard approvals retain their cross-record integrity.
 - `git diff --check`, secret review, and a tracked runtime-database scan pass.
+- The repository-local pilot workflow retains read-only permissions, pinned external actions,
+  bounded runtime, and minimized report output.
 
 ## 10. Definition of Tested
 

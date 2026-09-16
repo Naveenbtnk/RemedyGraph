@@ -305,7 +305,14 @@ class RemedyBenchEvaluator:
 
     def _benchmark_hash(self) -> str:
         digest = hashlib.sha256()
-        paths = (item for item in self.benchmark_root.rglob("*") if item.is_file())
+        paths = (
+            item
+            for item in self.benchmark_root.rglob("*")
+            if item.is_file()
+            and not {".remedygraph", "__pycache__"}.intersection(
+                item.relative_to(self.benchmark_root).parts
+            )
+        )
         for path in sorted(
             paths, key=lambda item: item.relative_to(self.benchmark_root).as_posix()
         ):

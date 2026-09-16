@@ -1,7 +1,7 @@
 # RemedyGraph Technical Architecture
 
-**Status:** Implemented local architecture
-**Style:** Local-first modular monolith
+**Status:** Implemented local architecture with repository-local pilot execution
+**Style:** Local-first modular monolith plus an opt-in GitHub Action adapter
 
 ## 1. Architectural Drivers
 
@@ -32,6 +32,15 @@ FastAPI modular monolith
   +--> SQLite + local vector index
   +--> Configurable LLM provider
   +--> Isolated/allowlisted guard subprocess
+
+Invited GitHub user
+  |
+  v
+Repository-owned GitHub Actions workflow
+  |-- read-only checkout
+  |-- RemedyGraph pilot CLI
+  |-- ephemeral SQLite and deterministic audit workflow
+  +--> minimized repository-owned report artifact
 ```
 
 ## 3. Component Responsibilities
@@ -51,6 +60,17 @@ FastAPI modular monolith
 - Validate requests and serialize responses.
 - Enforce project, run, and guard relationship integrity for local use.
 - Delegate behavior to services; contain no verification logic.
+
+### GitHub Pilot Adapter
+
+- Exposes the existing audit workflow through the `remedygraph-audit` CLI and composite action.
+- Relies on GitHub's authenticated repository workflow boundary instead of a shared RemedyGraph
+  identity or storage service.
+- Accepts only a checked-out repository and a contained Markdown/plain-text postmortem.
+- Creates SQLite state in a temporary directory, closes and deletes it after report assembly, and
+  writes only `.remedygraph/report.json` by default.
+- Emits a versioned minimized report without absolute paths, excerpts, evidence metadata, observed
+  configuration values, source archives, or guard artifacts.
 
 ### Audit Service
 
@@ -360,6 +380,12 @@ coordination/
 
 ## 16. Deployment
 
-The supported deployment is local and single-user. The API must remain bound to loopback unless
-authentication, tenant isolation, and an operating-system execution sandbox are added. Static
-frontend hosting alone cannot perform repository audits; see `docs/DEPLOYMENT.md`.
+The dashboard/API deployment remains local and single-user. The API must remain bound to loopback
+unless authentication, tenant isolation, and an operating-system execution sandbox are added.
+Static frontend hosting alone cannot perform repository audits.
+
+The optional pilot action runs in a repository-owned GitHub Actions job. GitHub provides user
+authentication, repository authorization, runner isolation, and artifact access control; there is
+no shared RemedyGraph customer database or hosted worker. This avoids accepting customer source or
+tokens into RemedyGraph infrastructure while collecting real audit feedback. See
+`docs/GITHUB_PILOT.md` and `docs/DEPLOYMENT.md`.

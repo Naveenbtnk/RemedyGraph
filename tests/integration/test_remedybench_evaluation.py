@@ -60,3 +60,16 @@ def test_benchmark_hash_is_independent_of_checkout_line_endings(tmp_path: Path) 
     assert benchmark_hash == RemedyBenchEvaluator(copied)._benchmark_hash()
     # Frozen v0.1.0 fixtures must hash identically on Windows and Linux.
     assert benchmark_hash == "7976ae3d5c3d19276f33ed209425d70bc95a2e5ae2557d731511efbf8cb6ad7e"
+
+
+def test_benchmark_hash_ignores_runtime_guard_artifacts(tmp_path: Path) -> None:
+    root = Path(__file__).parents[2]
+    benchmark = root / "remedybench"
+    copied = tmp_path / "remedybench"
+    shutil.copytree(benchmark, copied, ignore=shutil.ignore_patterns(".remedygraph"))
+    before = RemedyBenchEvaluator(copied)._benchmark_hash()
+    runtime = copied / "repositories" / "I04" / ".remedygraph" / "generated_guards"
+    runtime.mkdir(parents=True)
+    (runtime / "guard.py").write_text("raise SystemExit(1)\n", encoding="utf-8")
+
+    assert RemedyBenchEvaluator(copied)._benchmark_hash() == before
